@@ -27,9 +27,13 @@ class FleetProblem():
         
         #Iterate the list and print each value
         for value in data:
+            
             v = value.split()
-            if v != []: 
+           
+            if v != [] and v[0] != "#": 
+                
                 v = value.split()
+           
                 
                 if v[0] == 'P':
                     if len(v) < 2:
@@ -118,7 +122,9 @@ class FleetProblem():
     def cost(self, sol) :
         ''' Compute cost of solution sol. '''
         cost = 0
+        print(sol)
         for action in sol:
+            
             # type: a string, either ‘Pickup’ or  ́Dropoff’, with self-evident meaning;
             # v_i: an integer corresponding to the vehicle index;
             # r_i: an integer corresponding to the request index;
