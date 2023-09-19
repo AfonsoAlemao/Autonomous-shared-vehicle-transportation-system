@@ -118,7 +118,7 @@ class FleetProblem(search.Problem):
             raise Exception("Invalid input file") 
             
                         
-    def cost(self, sol) :
+    def isSolution(self, sol) :
         ''' Compute cost of solution sol. '''
         cost = 0
         print(sol)
