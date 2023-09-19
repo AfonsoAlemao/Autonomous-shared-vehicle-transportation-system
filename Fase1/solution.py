@@ -12,7 +12,7 @@ class FleetProblem(search.Problem):
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
         
-    def load(self, fh) :
+    def load(self, fh):
         ''' Loads a problem from the opened file object fh. '''
         
         # Read file line by line and store in a list
@@ -144,7 +144,7 @@ class FleetProblem(search.Problem):
             self.t_opt[(p, p)] = 0
 
                         
-    def isSolution(self, sol) :
+    def cost(self, sol):
         ''' Compute cost of solution sol. '''
         cost = 0
         
