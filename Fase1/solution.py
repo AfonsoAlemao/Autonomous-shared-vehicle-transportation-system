@@ -101,8 +101,9 @@ class FleetProblem(search.Problem):
                     origin, drop_off = int(v[1]), int(v[2])
                     num_p = int(v[3])
                     
-                    # Valid requests have origin != drop_off, request time >= 0, and number of passengers >= 1
-                    if origin == drop_off or req_time < 0 or num_p < 1:
+                    # Valid requests have request time >= 0, and number of passengers >= 1
+                    # if origin == drop_off we consider Tod = 0
+                    if req_time < 0 or num_p < 1:
                         raise Exception("Invalid input file")
 
                     self.req.append(tuple([req_time, origin, drop_off, num_p]))
@@ -137,12 +138,15 @@ class FleetProblem(search.Problem):
         # Check if we can fulfill all requests
         if max_capacity_request > max_capacity:
             raise Exception("Invalid input file") 
-            
+        
+        # Transportation time is 0 if origin == dropoff
+        for p in range(NP):
+            self.t_opt[(p, p)] = 0
+
                         
     def isSolution(self, sol) :
         ''' Compute cost of solution sol. '''
         cost = 0
-        # print(sol)
         
         # structure of solution element, i.e, an action: (type, v_i, r_i, t)
         # type: a string, either ‘Pickup’ or  ́Dropoff’, with self-evident meaning;
