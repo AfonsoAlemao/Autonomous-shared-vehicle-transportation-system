@@ -1,9 +1,8 @@
 import math
 
-# import search
+import search
 
-# class FleetProblem(search.Problem):
-class FleetProblem():
+class FleetProblem(search.Problem):
     
     def __init__(self):
         self.req = []
