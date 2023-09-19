@@ -147,6 +147,8 @@ class FleetProblem(search.Problem):
     def cost(self, sol):
         ''' Compute cost of solution sol. '''
         cost = 0
+
+        sol = list(eval(sol))
         
         # structure of solution element, i.e, an action: (type, v_i, r_i, t)
         # type: a string, either ‘Pickup’ or  ́Dropoff’, with self-evident meaning;
