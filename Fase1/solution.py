@@ -16,10 +16,8 @@ class FleetProblem(search.Problem):
         # Read file line by line and store in a list
         data = fh.readlines()
         
-        # mode = 0 (not read data); 
-        # mode = 1 (read transportation times); 
-        # mode = 2 (read requests); 
-        # mode = 3 (read vehicles)
+        # mode = 0 (do not read data), mode = 1 (read transportation times); 
+        # mode = 2 (read requests), mode = 3 (read vehicles)
         mode = 0 
         
         # Iterate through the input file lines
@@ -52,29 +50,23 @@ class FleetProblem(search.Problem):
                         # T(p, q) > 0 if p ̸= q (como está no enunciado)
                         if Tod <= 0:
                             raise Exception("Invalid transportation time")
-                        
-                        origin = counter
-                        drop_off = count_aux
-                        self.t_opt[(origin, drop_off)] = Tod
+                
+                        self.t_opt[(counter, count_aux)] = Tod # (origin, dropoff) = (counter, count_aux)
                         count_aux += 1
                     counter += 1
                     
                 elif mode == 2: # Read requests
                     req_time = float(v[0])
-                    origin, drop_off = int(v[1]), int(v[2])
-                    num_p = int(v[3])
                     
                     # Valid requests have t (request time) ≥ 0 (como está no enunciado)
                     if req_time < 0:
                         raise Exception("Invalid request time")
 
-                    self.req.append((req_time, origin, drop_off, num_p))
-                        
+                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]))) # (reqtime, origin, drop_off, num_p)
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
-                    capacity = int(v[0])
-                    self.vehicles.append(capacity)
+                    self.vehicles.append(int(v[0])) # capacity
                     counter += 1 
         
         # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (como está no enunciado)
@@ -87,7 +79,7 @@ class FleetProblem(search.Problem):
         cost = 0         
     
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
-        # pic_drop: a string, either ‘Pickup’ or  ́Dropoff’, with self-evident meaning;
+        # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
         # v_i: an integer corresponding to the vehicle index;
         # r_i: an integer corresponding to the request index;
         # t: a float corresponding to the time of the action
