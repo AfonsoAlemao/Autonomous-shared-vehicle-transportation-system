@@ -1,5 +1,3 @@
-# import math
-
 import search
 
 class FleetProblem(search.Problem):    
@@ -13,6 +11,7 @@ class FleetProblem(search.Problem):
         
     def load(self, fh):
         ''' Loads a problem from the opened file object fh. '''
+        counter = 0
         
         # Read file line by line and store in a list
         data = fh.readlines()
@@ -23,55 +22,24 @@ class FleetProblem(search.Problem):
         # mode = 3 (read vehicles)
         mode = 0 
         
-        # max_capacity = 0 # maximum number of passengers in a vehicle
-        # max_capacity_request = 0 # maximum number of passengers in a request
-        counter = 0
-        
         # Iterate through the input file lines
         for value in data:
             v = value.split()
            
             # Check if line is relevant 
             if v != [] and v[0] != "#":
-                if v[0] == 'P': # Detect information about number of points     
-                    # Check if line format meets specifications
-                    # if len(v) < 2:
-                    #     raise Exception("Invalid input file")
-                    
-                    NP = int(v[1])
-                    # Valid problems have NP >= 1
-                    # if NP < 1:
-                    #     raise Exception("Invalid input file")
-                    self.NP = NP
-                    
+                if v[0] == 'P': # Detect information about number of points 
+                    self.NP = int(v[1])
                     mode = 1
                     counter = 0
                 
                 elif v[0] == 'R': # Detect information about number of requests
-                    # Check if line format meets specifications
-                    # if len(v) < 2:
-                    #     raise Exception("Invalid input file")
-                    
-                    NR = int(v[1])
-                    # Valid problems have NR >= 1
-                    # if NR < 1:
-                    #     raise Exception("Invalid input file")
-                    self.NR = NR
-                    
+                    self.NR = int(v[1])             
                     mode = 2
                     counter = 0
                     
                 elif v[0] == 'V': # Detect information about number of vehicles
-                    # Check if line format meets specifications
-                    # if len(v) < 2:
-                    #     raise Exception("Invalid input file")
-                    
-                    NV = int(v[1])
-                    # Valid problems have NV >= 1
-                    # if NV < 1:
-                    #     raise Exception("Invalid input file")
-                    self.NV = NV
-                    
+                    self.NV = int(v[1])
                     mode = 3
                     counter = 0
                     
@@ -80,9 +48,10 @@ class FleetProblem(search.Problem):
                     for to in v:  
                         # Tod: Transportation time from origin (counter) to dropoff (count_aux)
                         Tod = float(to)
-                        # Valid Tod >= 0
-                        # if Tod < 0:
-                        #     raise Exception("Invalid input file")
+                        
+                        # T(p, q) > 0 if p ̸= q (como está no enunciado)
+                        if Tod <= 0:
+                            raise Exception("Invalid transportation time")
                         
                         origin = counter
                         drop_off = count_aux
@@ -91,54 +60,25 @@ class FleetProblem(search.Problem):
                     counter += 1
                     
                 elif mode == 2: # Read requests
-                    # Check if line format meets specifications
-                    # if len(v) < 4:
-                    #     raise Exception("Invalid input file")
-                    
                     req_time = float(v[0])
                     origin, drop_off = int(v[1]), int(v[2])
                     num_p = int(v[3])
                     
-                    # Valid requests have request time >= 0, and number of passengers >= 1
-                    # if origin == drop_off we consider Tod = 0
-                    # if req_time < 0 or num_p < 1:
-                    #     raise Exception("Invalid input file")
+                    # Valid requests have t (request time) ≥ 0 (como está no enunciado)
+                    if req_time < 0:
+                        raise Exception("Invalid request time")
 
-                    self.req.append((req_time, origin, drop_off, num_p)) # TODO
-                    
-                    # Update the maximum number of passengers in a request
-                    # if num_p > max_capacity_request:
-                    #     max_capacity_request = num_p
+                    self.req.append((req_time, origin, drop_off, num_p))
                         
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
-                    # Check if line format meets specifications
-                    # if len(v) < 1:
-                    #     raise Exception("Invalid input file")
-                    
                     capacity = int(v[0])
-                    # Valid vehicles have number of passengers >= 1 
-                    # if capacity < 1:
-                    #         raise Exception("Invalid input file")
                     self.vehicles.append(capacity)
-                    
-                    # Update maximum number of passengers in a vehicle
-                    # if capacity > max_capacity:
-                    #     max_capacity = capacity
-                    counter += 1
+                    counter += 1 
         
-        # Check if the number of requests/vehicles matches the number of requests/vehicles in the request/vehicles list
-        # The number of direct paths must be equal to NP C 2 (combinations of NP in pairs)
-        # if math.comb(self.NP, 2) != len(self.t_opt) or self.NR != len(self.req) or self.NV != len(self.vehicles):
-        #     raise Exception("Invalid input file") 
-        
-        # Check if we can fulfill all requests
-        # if max_capacity_request > max_capacity:
-        #     raise Exception("Invalid input file") 
-        
-        # Transportation time is 0 if origin == dropoff
-        for p in range(NP):
+        # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (como está no enunciado)
+        for p in range(self.NP):
             self.t_opt[(p, p)] = 0
 
                         
