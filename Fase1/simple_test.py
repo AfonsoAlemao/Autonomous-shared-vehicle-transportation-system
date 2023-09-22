@@ -43,7 +43,7 @@ def main():
     problem = FleetProblem()
     with io.StringIO(P) as fh:
         problem.load(fh)
-    cost = problem.cost(S)
+    cost = problem.cost(sol = list(eval(S)))
     # print(f"Computed cost = {cost} ({'OK' if cost==C else 'NOK'})")
     print(f"Computed cost = {cost}")
 
