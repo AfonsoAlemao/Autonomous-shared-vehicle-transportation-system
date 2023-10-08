@@ -9,7 +9,7 @@ class FleetProblem(search.Problem):
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
         self.state = [] # state
-        self.initial = []
+        self.initial = ''
         
     def load(self, fh):
         ''' Loads a problem from the opened file object fh. '''
@@ -64,7 +64,7 @@ class FleetProblem(search.Problem):
                     if req_time < 0:
                         raise Exception("Invalid request time")
 
-                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]), 0)) # (reqtime, origin, drop_off, num_p, status) status = 0 (start), status = 1 (picked up), status = 2 (finished)
+                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]))) # (reqtime, origin, drop_off, num_p) 
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
@@ -78,7 +78,11 @@ class FleetProblem(search.Problem):
                         
     def cost(self, sol):
         ''' Compute cost of solution sol. '''
-        cost = 0         
+        cost = 0  
+        if sol == '' or sol == 'None':
+            sol = []
+        else:
+            sol = list(eval(sol)) 
     
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -108,29 +112,58 @@ class FleetProblem(search.Problem):
         return cost 
     
     def result(self, state, action):
+        # print(action)
+        if state == ''or state=='None':
+            state = []
+        else:
+            state = list(eval(state))
+
+        state.append(action)
         ''' Return the state that results from executing
         the given action in the given state '''
-        return state.append(action)
+        # Using a list comprehension to format the tuples as strings
+        tuple_strings = [f'(\'{x}\', {y},{z},{w})' for x, y,z,w in state]
+
+        # Joining the formatted tuples into a single string, separated by commas
+        result_string = ', '.join(tuple_strings)
+        return '[' +result_string + ']'
         
     
     def actions(self, state):
         ''' Return the actions that can be executed the given state . '''
         R = []
+        available_seats = self.vehicles.copy()
+        req_status = [[0,-1] for __ in range(self.NR)] # status of requirements status = 0 (start), status = 1 (picked up), status = 2 (finished)
+        if state == '' or state == 'None':
+            state = []
+        else:
+            state = list(eval(state))
+        
+        for s in state:
+            req_status[s[2]][0] +=1
+            if s[0] == 'Pickup':
+                req_status[s[2]][1] = s[1]
+                available_seats[s[1]] -= self.req[s[2]][3]
+            else:
+                available_seats[s[1]] += self.req[s[2]][3]
 
         for index,request in enumerate(self.req):
-            if(request[4] == 0):
+            if(req_status[index][0] == 0):
                 R.append(('Pickup', index))
-            elif(request[4] == 1):
+            elif(req_status[index][0] == 1):
                 R.append(('Dropoff', index))
         actions = []
 
-        for indexR,request in enumerate(R):
-            for indexV,capacity in enumerate(self.vehicles):
-                #vehicle is appropriate for this specific task
-                if capacity >= self.req[request[1]]:
+        for request in R:
+            for indexV,_ in enumerate(self.vehicles):
+
+                if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]) :
+
+                    #vehicle is appropriate for this specific task
+                    
                     a = request[0]
                     v = indexV
-                    r = indexR
+                    r = request[1]
                     
                     # Iterar pelas state_actions e guardar última action relativa ao v_i (action_j).
                     # A partir deste ponto de partida para o veiculo calcular o tempo em que ele está disponivel para começar ação:
@@ -152,24 +185,26 @@ class FleetProblem(search.Problem):
                         # always 'Pickup':
                         new_action_point = self.req[request[1]][1] # get origin from request
                         
-                        t = max(self.t_opt((0, new_action_point)), self.req[request[1]][0]) 
+                        t = max(self.t_opt[(0, new_action_point)], self.req[request[1]][0]) 
                         # max(tempo de 0 até novo ponto; tempo do request no novo ponto)
 
                     else: 
                         # .v_i fez pickup/drop-off no ponto j: 
                         # t = t_drop/pick_j + tempo de ir de j para ponto da action 
 
-                        if a == 'Pickup':
-                            action_j_point = self.req[action_j[2]][1] # get origin from request
+                        if action_j[0][0] == 'Pickup':
+                            action_j_point = self.req[action_j[0][2]][1] # get origin from request
                         else:
-                            action_j_point = self.req[action_j[2]][2] # get destiny from request
+                            action_j_point = self.req[action_j[0][2]][2] # get destiny from request
                         
                         if a == 'Pickup':
                             new_action_point = self.req[request[1]][1] # get origin from request
                         else:
                             new_action_point = self.req[request[1]][2] # get destiny from request
-                        
-                        t = max(action_j[3] + self.t_opt((action_j_point, new_action_point)), self.req[request[1]][0])
+                        if action_j_point > new_action_point :
+                            action_j_point,new_action_point = new_action_point, action_j_point
+                            
+                        t = max(action_j[0][3] + self.t_opt[(action_j_point, new_action_point)], self.req[request[1]][0])
                             
                     actions.append((a,v,r,t))
         
@@ -178,6 +213,10 @@ class FleetProblem(search.Problem):
     
     def goal_test(self, state):
         ''' Return True if the state is a goal .''' 
+        if state == '' or state == 'None':
+            state = []
+        else:
+            state = list(eval(state))
         return len(state) == len(self.req)*2
         # return super().goal_test(state)
     

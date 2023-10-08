@@ -6,8 +6,9 @@ from solution import *
 
 test = sys.argv
 
-# File1 = open("../Test2/"+test[1]+".plan", "r")
-File2  = open("../Test2/ex0"+".dat", "r")
+# File1 = open("../Test1/"+test[1]+".plan", "r")
+# File2  = open("../Test2/"+test[1]+".dat", "r")
+File2  = open("../Test2/ex4"+".dat", "r")
 
 # S = File1.read()
 # File1.close()
@@ -44,7 +45,10 @@ def main():
     with io.StringIO(P) as fh:
         problem.load(fh)
     solution = problem.solve()
-    print(solution)
+    # print(solution)
+    alemao = str(solution)[6:-1]
+    print(alemao)
+    print(problem.cost(alemao))
 
 
         
