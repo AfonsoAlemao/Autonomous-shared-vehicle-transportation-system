@@ -9,6 +9,7 @@ class FleetProblem(search.Problem):
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
         self.state = [] # state
+        self.initial = []
         
     def load(self, fh):
         ''' Loads a problem from the opened file object fh. '''

@@ -6,11 +6,11 @@ from solution import *
 
 test = sys.argv
 
-File1 = open("../Test/"+test[1]+".plan", "r")
-File2  = open("../Test/"+test[1]+".dat", "r")
+# File1 = open("../Test2/"+test[1]+".plan", "r")
+File2  = open("../Test2/ex0"+".dat", "r")
 
-S = File1.read()
-File1.close()
+# S = File1.read()
+# File1.close()
 
 P = File2.read()
 File2.close()
@@ -43,9 +43,9 @@ def main():
     problem = FleetProblem()
     with io.StringIO(P) as fh:
         problem.load(fh)
-    cost = problem.cost(sol = list(eval(S)))
-    # print(f"Computed cost = {cost} ({'OK' if cost==C else 'NOK'})")
-    print(f"Computed cost = {cost}")
+    solution = problem.solve()
+    print(solution)
+
 
         
 if __name__=='__main__':
