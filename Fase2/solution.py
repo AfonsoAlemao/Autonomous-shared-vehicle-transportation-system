@@ -63,7 +63,7 @@ class FleetProblem(search.Problem):
                     if req_time < 0:
                         raise Exception("Invalid request time")
 
-                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]), 0)) # (reqtime, origin, drop_off, num_p,status ) status = 0 (start), status = 1 (picked up), status = 2 (finished)
+                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]), 0)) # (reqtime, origin, drop_off, num_p, status) status = 0 (start), status = 1 (picked up), status = 2 (finished)
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
@@ -113,6 +113,7 @@ class FleetProblem(search.Problem):
         
     
     def actions(self, state):
+        ''' Return the actions that can be executed the given state . '''
         R = []
 
         for index,request in enumerate(self.req):
@@ -129,29 +130,55 @@ class FleetProblem(search.Problem):
                     a = request[0]
                     v = indexV
                     r = indexR
-                    t = 0 #TODO
-
-                    actions.append((a,v,r,t))
-        
-        return actions
+                    
+                    # Iterar pelas state_actions e guardar última action relativa ao v_i (action_j).
+                    # A partir deste ponto de partida para o veiculo calcular o tempo em que ele está disponivel para começar ação:
+                    # Ponto da action = (origin if pickup/destiny if dropoff)
+                    
+                    action_j = []
+                    for st_action in reversed(state):
+                        if st_action[1] == v:
+                            action_j.append(st_action)
+                            break
+                    
                     
 
+                    # Casos possíveis:
+                    # .v_i nunca foi usado: 
+                    # t = tempo que demora do ponto 0 até ao ponto da action
+                    
+                    if action_j == []:
+                        # always 'Pickup':
+                        new_action_point = self.req[request[1]][1] # get origin from request
+                        
+                        t = max(self.t_opt((0, new_action_point)), self.req[request[1]][0]) 
+                        # max(tempo de 0 até novo ponto; tempo do request no novo ponto)
 
+                    else: 
+                        # .v_i fez pickup/drop-off no ponto j: 
+                        # t = t_drop/pick_j + tempo de ir de j para ponto da action 
 
-        # Iterar pelos veiculos
-        # -para cada veiculo viável (com num_lugares suficiente) adicionar à lista V
-
-        # V={v1,v2}
-
-        # Iterar por V:
-        #   calcular o t_opt-> criar action
-        ''' Return the actions that can be executed the given state . '''
-        return super().actions(state)
+                        if a == 'Pickup':
+                            action_j_point = self.req[action_j[2]][1] # get origin from request
+                        else:
+                            action_j_point = self.req[action_j[2]][2] # get destiny from request
+                        
+                        if a == 'Pickup':
+                            new_action_point = self.req[request[1]][1] # get origin from request
+                        else:
+                            new_action_point = self.req[request[1]][2] # get destiny from request
+                        
+                        t = max(action_j[3] + self.t_opt((action_j_point, new_action_point)), self.req[request[1]][0])
+                            
+                    actions.append((a,v,r,t))
+        
+        return actions        
+        # return super().actions(state)
     
     def goal_test(self, state):
         ''' Return True if the state is a goal .''' 
         return len(state) == len(self.req)*2
-        return super().goal_test(state)
+        # return super().goal_test(state)
     
     def path_cost(self, c, state1, action, state2):
         ''' Return the cost of a solution path that arrives at state 2 from
