@@ -8,6 +8,7 @@ class FleetProblem(search.Problem):
         self.NP = 0 # Number of all pickup/drop-off points
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
+        self.state = [] # state
         
     def load(self, fh):
         ''' Loads a problem from the opened file object fh. '''
@@ -62,7 +63,7 @@ class FleetProblem(search.Problem):
                     if req_time < 0:
                         raise Exception("Invalid request time")
 
-                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]))) # (reqtime, origin, drop_off, num_p)
+                    self.req.append((req_time, int(v[1]), int(v[2]), int(v[3]), 0)) # (reqtime, origin, drop_off, num_p,status ) status = 0 (start), status = 1 (picked up), status = 2 (finished)
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
@@ -104,3 +105,64 @@ class FleetProblem(search.Problem):
                 cost += dr
                    
         return cost 
+    
+    def result(self, state, action):
+        ''' Return the state that results from executing
+        the given action in the given state '''
+        return state.append(action)
+        
+    
+    def actions(self, state):
+        R = []
+
+        for index,request in enumerate(self.req):
+            if(request[4] == 0):
+                R.append(('Pickup', index))
+            elif(request[4] == 1):
+                R.append(('Dropoff', index))
+        actions = []
+
+        for indexR,request in enumerate(R):
+            for indexV,capacity in enumerate(self.vehicles):
+                #vehicle is appropriate for this specific task
+                if capacity >= self.req[request[1]]:
+                    a = request[0]
+                    v = indexV
+                    r = indexR
+                    t = 0 #TODO
+
+                    actions.append((a,v,r,t))
+        
+        return actions
+                    
+
+
+
+        # Iterar pelos veiculos
+        # -para cada veiculo viável (com num_lugares suficiente) adicionar à lista V
+
+        # V={v1,v2}
+
+        # Iterar por V:
+        #   calcular o t_opt-> criar action
+        ''' Return the actions that can be executed the given state . '''
+        return super().actions(state)
+    
+    def goal_test(self, state):
+        ''' Return True if the state is a goal .''' 
+        return len(state) == len(self.req)*2
+        return super().goal_test(state)
+    
+    def path_cost(self, c, state1, action, state2):
+        ''' Return the cost of a solution path that arrives at state 2 from
+    state1 via action , assuming cost c to get up to state1 . '''
+
+        state2 = self.result(state=state1, action=action)
+
+        return self.cost(state2) 
+    
+    def solve(self):
+        ''' Calls the uninformed search algorithm
+        chosen . Returns a solution using the specified format . '''
+
+        return search.uniform_cost_search(self)
