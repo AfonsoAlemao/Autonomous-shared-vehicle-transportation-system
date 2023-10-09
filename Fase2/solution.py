@@ -1,5 +1,21 @@
 import search
+            
+def str_to_list_of_tuples(str):
+    if str == '' or str == 'None':
+        str = []
+    else:
+        str = list(eval(str))
+    
+    return str
 
+def list_of_tuples_to_str(state):
+    # Using a list comprehension to format the tuples as strings
+    tuple_strings = [f'(\'{x}\', {y}, {z}, {w})' for x, y, z, w in state]
+
+    # Joining the formatted tuples into a single string, separated by commas
+    result_string = ', '.join(tuple_strings)
+    return '[' + result_string + ']'
+    
 class FleetProblem(search.Problem):    
     def __init__(self):
         self.req = [] # Store the requests
@@ -75,8 +91,6 @@ class FleetProblem(search.Problem):
         for p in range(self.NP):
             self.t_opt[(p, p)] = 0
             
-        print(self.req)
-
                         
     def cost(self, sol):
         ''' Compute cost of solution sol. '''
@@ -132,6 +146,7 @@ class FleetProblem(search.Problem):
             else:
                 veh_status[v_i] = action
             
+            # In case a request has already been fulfilled, its cost is equal to the delay
             if pic_drop == 'Dropoff':
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
@@ -140,44 +155,48 @@ class FleetProblem(search.Problem):
                     origin, drop_off = drop_off, origin
                 Tod = self.t_opt[(origin, drop_off)]
                 
-                # Delay (dr) = 
+                # ReqCost = Delay = 
                 # = Dropoff time of an action (td) -
                 # - Time of the request of an action (treq) -
-                # - Optimal transportation time between origin and drop_off (Tod)
-                dr = td - t_req - Tod
-                
-                # Cost of sol = sum of the request's delay
-                cost += dr
+                # - Optimal transportation time between origin and drop_off (Tod)                
+                cost += td - t_req - Tod
                 
                 status_req[r_i] = True
                 
         for action in sol:
             pic_drop, v_i, r_i, tp = action
         
+            # In case where request pickup has been done and dropoff hasn't,
+            # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
             if pic_drop == 'Pickup' and status_req[r_i] == False:
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
-                # Delay (dr) = 
+                # Delay (dr1) = 
                 # = Pickup time of an action (td) -
                 # - Time of the request of an action (treq)
                 dr1 = tp - t_req 
                 
+                # dr2 = td_i_estimated - td_iopt
+                # where td_iopt: the optimal dropoff time for this request
+                # td_i_estimated: the estimated dropoff time for this request, considering
+                # the current location of the vehicle in its previous action, and that it is going 
+                # from that point to the destination of the request (optimistic case)
                 if veh_status[v_i] != []:
                     a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
                     origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
                     if a_j == 'Pickup':
-                        # td_i_real = tp_j + Tod(origin_j, destiny_i)
+                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
                         if origin_j < drop_off:
-                            td_i_real = tp_j + self.t_opt[(origin_j, drop_off)]
+                            td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
                         else:
-                            td_i_real = tp_j + self.t_opt[(drop_off, origin_j)]
+                            td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
                     else:
-                        # td_i_real = tp_j + Tod(origin_j, destiny_i)
+                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
                         if drop_off_j < drop_off:
-                            td_i_real = tp_j + self.t_opt[(drop_off_j, drop_off)]
+                            td_i_estimated = tp_j + self.t_opt[(drop_off_j, drop_off)]
                         else:
-                            td_i_real = tp_j + self.t_opt[(drop_off, drop_off_j)]
+                            td_i_estimated = tp_j + self.t_opt[(drop_off, drop_off_j)]
                             
                     # td_iopt = tpi + Tod(origin_i, destiny_i)
                     if origin < drop_off:
@@ -185,8 +204,7 @@ class FleetProblem(search.Problem):
                     else:
                         td_iopt = tp + self.t_opt[(drop_off, origin)]
 
-                    dr2 = td_i_real - td_iopt
-                    
+                    dr2 = td_i_estimated - td_iopt             
                 else:
                     dr2 = 0
                         
@@ -195,28 +213,16 @@ class FleetProblem(search.Problem):
 
         return cost 
     
+    
     def result(self, state, action):
-        if state == ''or state=='None':
-            state = []
-        else:
-            state = list(eval(state))
-
+        ''' Return the state that results from executing
+        the given action in the given state '''
+        state = str_to_list_of_tuples(state)
         state.append(action)
                 
         # Sort state in order to use the priority queue without duplicates
         state = sorted(state, key=lambda x: (x[3], x[0][0], x[1], x[2]))
-        
-        ''' Return the state that results from executing
-        the given action in the given state '''
-        
-        # Pass list of tuples to string
-        
-        # Using a list comprehension to format the tuples as strings
-        tuple_strings = [f'(\'{x}\', {y}, {z}, {w})' for x, y, z, w in state]
-
-        # Joining the formatted tuples into a single string, separated by commas
-        result_string = ', '.join(tuple_strings)
-        return '[' + result_string + ']'
+        return list_of_tuples_to_str(state)
         
     
     def actions(self, state):
@@ -227,10 +233,7 @@ class FleetProblem(search.Problem):
         # (0): status of requirements 0 (start), 1 (picked up), 2 (finished)
         # (1): index of the vehicle in charge of the request
         
-        if state == '' or state == 'None':
-            state = []
-        else:
-            state = list(eval(state))
+        state = str_to_list_of_tuples(state)
         
         # Get the number of current available seats in each vehicle
         # and get the status of each request
@@ -293,10 +296,8 @@ class FleetProblem(search.Problem):
     
     def goal_test(self, state):
         ''' Return True if the state is a goal .''' 
-        if state == '' or state == 'None':
-            state = []
-        else:
-            state = list(eval(state))
+        state = str_to_list_of_tuples(state)
+        
         return len(state) == len(self.req) * 2
     
     def path_cost(self, c, state1, action, state2):

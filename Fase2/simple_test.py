@@ -44,7 +44,7 @@ def main():
     with io.StringIO(P) as fh:
         problem.load(fh)
     solution = problem.solve()
-    print(solution)
+    # print(solution)
     print(problem.cost(solution))
 
         
