@@ -163,7 +163,7 @@ class FleetProblem(search.Problem):
                 # Delay (dr) = 
                 # = Pickup time of an action (td) -
                 # - Time of the request of an action (treq)
-                dr = tp - t_req 
+                dr1 = tp - t_req 
                 
                 
                 # atraves do veiculo associado ao pickup i, decobrir coisas sobre o j
@@ -171,23 +171,28 @@ class FleetProblem(search.Problem):
                     _, _, r_j, tp_j = veh_status[v_i]
                     origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
-                    if origin_j > drop_off_j:
-                        origin_j, drop_off_j = drop_off_j, origin_j
+                    if origin_j < drop_off:
+                        td_ireal = tp_j + self.t_opt[(origin_j, drop_off)]
+                    else:
+                        td_ireal = tp_j + self.t_opt[(drop_off, origin_j)]
                     
-                    td_j = tp_j + self.t_opt[(origin_j, drop_off_j)]
                     
-                    if origin > drop_off:
-                        origin, drop_off = drop_off, origin
-                        
-                    td_i = tp + self.t_opt[(origin, drop_off)]
+                    if origin < drop_off:
+                        td_iopt = tp + self.t_opt[(origin, drop_off)]
+                    else:
+                        td_iopt = tp + self.t_opt[(drop_off, origin)]
 
-                    dr2 = td_j - td_i
+                    dr2 = td_ireal - td_iopt
                 else:
                     dr2 = 0
                 
-                dr2 = 0         
+                # dr2 = tdireal-tdiopt
+                #td_ireal = tp_j+T(origin_j,destiny_i)
+                #td_iopt = tpi+T(origin_i,destiny_i)
+                
+                        
                 # Cost of sol = sum of the request's delay
-                cost += dr + dr2
+                cost += dr1 + dr2
         # print(cost)
         return cost 
     
@@ -207,8 +212,11 @@ class FleetProblem(search.Problem):
         
         ''' Return the state that results from executing
         the given action in the given state '''
+        
+        # Pass list of tuples to string
+        
         # Using a list comprehension to format the tuples as strings
-        tuple_strings = [f'(\'{x}\', {y}, {z}, {w})' for x, y,z,w in state]
+        tuple_strings = [f'(\'{x}\', {y}, {z}, {w})' for x, y, z, w in state]
 
         # Joining the formatted tuples into a single string, separated by commas
         result_string = ', '.join(tuple_strings)
@@ -220,6 +228,8 @@ class FleetProblem(search.Problem):
         R = []
         available_seats = self.vehicles.copy()
         req_status = [[0,-1] for __ in range(self.NR)] # status of requirements status = 0 (start), status = 1 (picked up), status = 2 (finished)
+        #status[1] is the vehicle in charge of the request
+        
         if state == '' or state == 'None':
             state = []
         else:
@@ -292,7 +302,6 @@ class FleetProblem(search.Problem):
                     actions.append((a,v,r,t))
         # print(actions)
         return actions        
-        # return super().actions(state)
     
     def goal_test(self, state):
         ''' Return True if the state is a goal .''' 
@@ -300,15 +309,11 @@ class FleetProblem(search.Problem):
             state = []
         else:
             state = list(eval(state))
-        return len(state) == len(self.req)*2
-        # return super().goal_test(state)
+        return len(state) == len(self.req) * 2
     
     def path_cost(self, c, state1, action, state2):
         ''' Return the cost of a solution path that arrives at state 2 from
     state1 via action , assuming cost c to get up to state1 . '''
-
-        # state2 = self.result(state=state1, action=action)
-
         return self.cost2(list(eval(state2))) 
     
     def solve(self):
@@ -316,16 +321,5 @@ class FleetProblem(search.Problem):
         chosen . Returns a solution using the specified format . '''
 
         solution = search.uniform_cost_search(self)
-        # solution = search.iterative_deepening_search(self) Correu, Errou
-        # solution = search.depth_limited_search(self)  Correu, Errou
-        # solution = search.breadth_first_graph_search(self) Correu, Errou
-        # solution = search.depth_first_graph_search(self) Correu, Errou
-        # solution = search.depth_first_tree_search(self) Correu, Errou
-        # solution = search.best_first_graph_search(self) Nao correu
-        # solution = search.breadth_first_tree_search(self) Correu, Errou
-        # solution = search.bidirectional_search(self) Nao correu
-        
-        solution = str(solution)[6:-1]
-        solution = list(eval(solution))
-        
+        solution = list(eval(solution.state))
         return solution
