@@ -113,9 +113,9 @@ class FleetProblem(search.Problem):
         ''' Compute cost of solution sol.
         It also considers imcomplete solutions including pickups withount dropoff '''
         
-        status_req = [False for _ in self.req] # False: Dropoff not done, True: Dropoff already done
-        cost = 0  
-        veh_status = [[] for _ in self.vehicles]
+        cost = 0
+        status_req = [False for _ in self.req] # False: Dropoff not done yet, True: Dropoff already done
+        veh_status = [[] for _ in self.vehicles] # Last action performed by the vehicle
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -125,15 +125,10 @@ class FleetProblem(search.Problem):
         for action in sol:
             pic_drop, v_i, r_i, td = action
             
-            # Para cada veiculo, ver onde ele está (ponto do ultimo pickup/dropoff), descobrir o j
+            # For each vehicle, check where it is (point of the last pickup/dropoff)
             if veh_status[v_i] != []:
                 if td > veh_status[v_i][3]:
                     veh_status[v_i] = action
-                # elif td == veh_status[v_i][3]:
-                #     if veh_status[v_i][0] == 'Pickup' and pic_drop == 'Pickup':
-                #         veh_status[v_i] = []
-                #     else:
-                #         veh_status[v_i] = action
             else:
                 veh_status[v_i] = action
             
@@ -167,26 +162,24 @@ class FleetProblem(search.Problem):
                 # - Time of the request of an action (treq)
                 dr1 = tp - t_req 
                 
-                
-                # atraves do veiculo associado ao pickup i, decobrir coisas sobre o j
                 if veh_status[v_i] != []:
-                    a_j, _, r_j, tp_j = veh_status[v_i]
+                    a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
                     origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
                     if a_j == 'Pickup':
-                        #td_i_real = tp_j+T(origin_j,destiny_i)
+                        # td_i_real = tp_j + Tod(origin_j, destiny_i)
                         if origin_j < drop_off:
                             td_i_real = tp_j + self.t_opt[(origin_j, drop_off)]
                         else:
                             td_i_real = tp_j + self.t_opt[(drop_off, origin_j)]
                     else:
-                        #td_i_real = tp_j+T(origin_j,destiny_i)
+                        # td_i_real = tp_j + Tod(origin_j, destiny_i)
                         if drop_off_j < drop_off:
                             td_i_real = tp_j + self.t_opt[(drop_off_j, drop_off)]
                         else:
                             td_i_real = tp_j + self.t_opt[(drop_off, drop_off_j)]
                             
-                    #td_iopt = tpi+T(origin_i,destiny_i)
+                    # td_iopt = tpi + Tod(origin_i, destiny_i)
                     if origin < drop_off:
                         td_iopt = tp + self.t_opt[(origin, drop_off)]
                     else:
@@ -199,21 +192,18 @@ class FleetProblem(search.Problem):
                         
                 # Cost of sol = sum of the request's delay
                 cost += dr1 + dr2
-        # print(cost)
+
         return cost 
     
     def result(self, state, action):
-        # print(action)
         if state == ''or state=='None':
             state = []
         else:
             state = list(eval(state))
 
         state.append(action)
-        
-        # print(state)
-        
-        # sort state
+                
+        # Sort state in order to use the priority queue without duplicates
         state = sorted(state, key=lambda x: (x[3], x[0][0], x[1], x[2]))
         
         ''' Return the state that results from executing
@@ -232,15 +222,18 @@ class FleetProblem(search.Problem):
     def actions(self, state):
         ''' Return the actions that can be executed the given state . '''
         R = []
-        available_seats = self.vehicles.copy()
-        req_status = [[0,-1] for __ in range(self.NR)] # status of requirements status = 0 (start), status = 1 (picked up), status = 2 (finished)
-        #status[1] is the vehicle in charge of the request
+        available_seats = self.vehicles.copy() # number of available seats in each vehicle
+        req_status = [[0,-1] for __ in range(self.NR)]  # status of each request (0,1)
+        # (0): status of requirements 0 (start), 1 (picked up), 2 (finished)
+        # (1): index of the vehicle in charge of the request
         
         if state == '' or state == 'None':
             state = []
         else:
             state = list(eval(state))
         
+        # Get the number of current available seats in each vehicle
+        # and get the status of each request
         for s in state:
             req_status[s[2]][0] +=1
             if s[0] == 'Pickup':
@@ -249,6 +242,7 @@ class FleetProblem(search.Problem):
             else:
                 available_seats[s[1]] += self.req[s[2]][3]
 
+        # R gets the feasible requests actions available to be executed
         for index,request in enumerate(self.req):
             if(req_status[index][0] == 0):
                 R.append(('Pickup', index))
@@ -258,45 +252,30 @@ class FleetProblem(search.Problem):
 
         for request in R:
             for indexV,_ in enumerate(self.vehicles):
-
-                if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]) :
-                    #vehicle is appropriate for this specific task
+                # Vehicle is appropriate for this specific task, i.e.,
+                # in cases of pickup check if the vehicle has available seats and
+                # in cases of dropoff check if it's the same vehicle that is performing that request
+                if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or \
+                    (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]):
                     
-                    a = request[0]
-                    v = indexV
-                    r = request[1]
-                    
-                    # Iterar pelas state_actions e guardar última action relativa ao v_i (action_j).
-                    # A partir deste ponto de partida para o veiculo calcular o tempo em que ele está disponivel para começar ação:
-                    # Ponto da action = (origin if pickup/destiny if dropoff)
-                    
+                    # Save the last action by vehicle
                     action_j = []
                     for st_action in reversed(state):
-                        if st_action[1] == v:
+                        if st_action[1] == indexV:
                             action_j.append(st_action)
                             break
                     
-                    # Casos possíveis:
-                    # .v_i nunca foi usado: 
-                    # t = tempo que demora do ponto 0 até ao ponto da action
-                    
+                    # Vehicle never used before
                     if action_j == []:
-                        # always 'Pickup':
-                        new_action_point = self.req[request[1]][1] # get origin from request
-                        
+                        new_action_point = self.req[request[1]][1] # get origin from request, because always 'Pickup'
                         t = max(self.t_opt[(0, new_action_point)], self.req[request[1]][0]) 
-                        # max(tempo de 0 até novo ponto; tempo do request no novo ponto)
-
                     else: 
-                        # .v_i fez pickup/drop-off no ponto j: 
-                        # t = t_drop/pick_j + tempo de ir de j para ponto da action 
-
                         if action_j[0][0] == 'Pickup':
                             action_j_point = self.req[action_j[0][2]][1] # get origin from request
                         else:
                             action_j_point = self.req[action_j[0][2]][2] # get destiny from request
                         
-                        if a == 'Pickup':
+                        if request[0] == 'Pickup':
                             new_action_point = self.req[request[1]][1] # get origin from request
                         else:
                             new_action_point = self.req[request[1]][2] # get destiny from request
@@ -304,10 +283,12 @@ class FleetProblem(search.Problem):
                         if action_j_point > new_action_point :
                             action_j_point,new_action_point = new_action_point, action_j_point
                             
+                        # t = t_drop/pick_j + time from point j to new action's point 
                         t = max(action_j[0][3] + self.t_opt[(action_j_point, new_action_point)], self.req[request[1]][0])
                             
-                    actions.append((a,v,r,t))
-        # print(actions)
+                    actions.append((request[0], indexV, request[1], t))
+                    # action = (pickoff/dropoff, vehicle index, request index, time)
+
         return actions        
     
     def goal_test(self, state):
