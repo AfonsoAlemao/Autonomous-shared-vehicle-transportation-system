@@ -184,10 +184,11 @@ class FleetProblem(search.Problem):
                     dr2 = td_j - td_i
                 else:
                     dr2 = 0
-                                
+                
+                dr2 = 0         
                 # Cost of sol = sum of the request's delay
                 cost += dr + dr2
-                
+        # print(cost)
         return cost 
     
     def result(self, state, action):
@@ -198,6 +199,12 @@ class FleetProblem(search.Problem):
             state = list(eval(state))
 
         state.append(action)
+        
+        # print(state)
+        
+        # sort state
+        state = sorted(state, key=lambda x: (x[3], x[0][0], x[1], x[2]))
+        
         ''' Return the state that results from executing
         the given action in the given state '''
         # Using a list comprehension to format the tuples as strings
@@ -205,7 +212,7 @@ class FleetProblem(search.Problem):
 
         # Joining the formatted tuples into a single string, separated by commas
         result_string = ', '.join(tuple_strings)
-        return '[' +result_string + ']'
+        return '[' + result_string + ']'
         
     
     def actions(self, state):
@@ -283,7 +290,7 @@ class FleetProblem(search.Problem):
                         t = max(action_j[0][3] + self.t_opt[(action_j_point, new_action_point)], self.req[request[1]][0])
                             
                     actions.append((a,v,r,t))
-        
+        # print(actions)
         return actions        
         # return super().actions(state)
     
@@ -300,7 +307,7 @@ class FleetProblem(search.Problem):
         ''' Return the cost of a solution path that arrives at state 2 from
     state1 via action , assuming cost c to get up to state1 . '''
 
-        state2 = self.result(state=state1, action=action)
+        # state2 = self.result(state=state1, action=action)
 
         return self.cost2(list(eval(state2))) 
     
