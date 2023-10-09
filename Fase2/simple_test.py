@@ -7,7 +7,7 @@ from solution import *
 test = sys.argv
 
 # File1 = open("../Test1/"+test[1]+".plan", "r")
-File2  = open("../Test2/ex4"+".dat", "r")
+File2  = open("../Test2/"+test[1]+".dat", "r")
 
 # S = File1.read()
 # File1.close()
