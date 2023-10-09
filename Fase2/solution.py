@@ -74,6 +74,8 @@ class FleetProblem(search.Problem):
         # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (como está no enunciado)
         for p in range(self.NP):
             self.t_opt[(p, p)] = 0
+            
+        print(self.req)
 
                         
     def cost(self, sol):
@@ -127,11 +129,11 @@ class FleetProblem(search.Problem):
             if veh_status[v_i] != []:
                 if td > veh_status[v_i][3]:
                     veh_status[v_i] = action
-                elif td == veh_status[v_i][3]:
-                    if veh_status[v_i][0] == 'Pickup' and pic_drop == 'Pickup':
-                        veh_status[v_i] = []
-                    else:
-                        veh_status[v_i] = action
+                # elif td == veh_status[v_i][3]:
+                #     if veh_status[v_i][0] == 'Pickup' and pic_drop == 'Pickup':
+                #         veh_status[v_i] = []
+                #     else:
+                #         veh_status[v_i] = action
             else:
                 veh_status[v_i] = action
             
@@ -168,28 +170,32 @@ class FleetProblem(search.Problem):
                 
                 # atraves do veiculo associado ao pickup i, decobrir coisas sobre o j
                 if veh_status[v_i] != []:
-                    _, _, r_j, tp_j = veh_status[v_i]
+                    a_j, _, r_j, tp_j = veh_status[v_i]
                     origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
-                    if origin_j < drop_off:
-                        td_ireal = tp_j + self.t_opt[(origin_j, drop_off)]
+                    if a_j == 'Pickup':
+                        #td_i_real = tp_j+T(origin_j,destiny_i)
+                        if origin_j < drop_off:
+                            td_i_real = tp_j + self.t_opt[(origin_j, drop_off)]
+                        else:
+                            td_i_real = tp_j + self.t_opt[(drop_off, origin_j)]
                     else:
-                        td_ireal = tp_j + self.t_opt[(drop_off, origin_j)]
-                    
-                    
+                        #td_i_real = tp_j+T(origin_j,destiny_i)
+                        if drop_off_j < drop_off:
+                            td_i_real = tp_j + self.t_opt[(drop_off_j, drop_off)]
+                        else:
+                            td_i_real = tp_j + self.t_opt[(drop_off, drop_off_j)]
+                            
+                    #td_iopt = tpi+T(origin_i,destiny_i)
                     if origin < drop_off:
                         td_iopt = tp + self.t_opt[(origin, drop_off)]
                     else:
                         td_iopt = tp + self.t_opt[(drop_off, origin)]
 
-                    dr2 = td_ireal - td_iopt
+                    dr2 = td_i_real - td_iopt
+                    
                 else:
                     dr2 = 0
-                
-                # dr2 = tdireal-tdiopt
-                #td_ireal = tp_j+T(origin_j,destiny_i)
-                #td_iopt = tpi+T(origin_i,destiny_i)
-                
                         
                 # Cost of sol = sum of the request's delay
                 cost += dr1 + dr2
@@ -294,6 +300,7 @@ class FleetProblem(search.Problem):
                             new_action_point = self.req[request[1]][1] # get origin from request
                         else:
                             new_action_point = self.req[request[1]][2] # get destiny from request
+                            
                         if action_j_point > new_action_point :
                             action_j_point,new_action_point = new_action_point, action_j_point
                             
