@@ -24,7 +24,7 @@ class FleetProblem(search.Problem):
         self.NP = 0 # Number of all pickup/drop-off points
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
-        self.initial = ''  # Inicial state is an empty string (empty list of tuples when we convert it)
+        self.initial = ''  # Initial state is an empty string (empty list of tuples when we convert it)
     
     ''' Loads a problem from the opened file object fh. '''  
     def load(self, fh):  
