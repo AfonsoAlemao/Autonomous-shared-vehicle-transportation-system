@@ -1,17 +1,17 @@
 import search
-            
+
+''' Format a string to a list of tuples '''
 def str_to_list_of_tuples(str):
     if str == '' or str == 'None':
         str = []
     else:
         str = list(eval(str))
-    
     return str
 
+''' Format a list of tuples [(a, b, c, d), ...] to string '''
 def list_of_tuples_to_str(state):
     # Using a list comprehension to format the tuples as strings
     tuple_strings = [f'(\'{x}\', {y}, {z}, {w})' for x, y, z, w in state]
-
     # Joining the formatted tuples into a single string, separated by commas
     result_string = ', '.join(tuple_strings)
     return '[' + result_string + ']'
@@ -24,11 +24,10 @@ class FleetProblem(search.Problem):
         self.NP = 0 # Number of all pickup/drop-off points
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
-        self.state = [] # state
-        self.initial = ''
-        
-    def load(self, fh):
-        ''' Loads a problem from the opened file object fh. '''
+        self.initial = ''  # Inicial state is an empty string (empty list of tuples when we convert it)
+    
+    ''' Loads a problem from the opened file object fh. '''  
+    def load(self, fh):  
         counter = 0
         
         # Read file line by line and store in a list
@@ -91,9 +90,8 @@ class FleetProblem(search.Problem):
         for p in range(self.NP):
             self.t_opt[(p, p)] = 0
             
-                        
+    ''' Compute cost of solution sol. '''       
     def cost(self, sol):
-        ''' Compute cost of solution sol. '''
         cost = 0  
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
@@ -123,12 +121,11 @@ class FleetProblem(search.Problem):
                    
         return cost 
     
+    ''' Compute cost of solution sol. It also considers incomplete solutions 
+    by including delays of partially completed requests (only picked up). '''
     def cost2(self, sol):
-        ''' Compute cost of solution sol.
-        It also considers imcomplete solutions including pickups withount dropoff '''
-        
         cost = 0
-        status_req = [False for _ in self.req] # False: Dropoff not done yet, True: Dropoff already done
+        status_req = [False for _ in self.req] # (False): Dropoff not done yet; (True): Dropoff already done
         veh_status = [[] for _ in self.vehicles] # Last action performed by the vehicle
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
@@ -139,14 +136,14 @@ class FleetProblem(search.Problem):
         for action in sol:
             pic_drop, v_i, r_i, td = action
             
-            # For each vehicle, check where it is (point of the last pickup/dropoff)
+            # For each vehicle, check its previous action
             if veh_status[v_i] != []:
                 if td > veh_status[v_i][3]:
                     veh_status[v_i] = action
             else:
                 veh_status[v_i] = action
             
-            # In case a request has already been fulfilled, its cost is equal to the delay
+            # If a request has already been fulfilled, its cost is determined by the delay
             if pic_drop == 'Dropoff':
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
@@ -155,7 +152,7 @@ class FleetProblem(search.Problem):
                     origin, drop_off = drop_off, origin
                 Tod = self.t_opt[(origin, drop_off)]
                 
-                # ReqCost = Delay = 
+                # Request Cost = Delay = 
                 # = Dropoff time of an action (td) -
                 # - Time of the request of an action (treq) -
                 # - Optimal transportation time between origin and drop_off (Tod)                
@@ -166,7 +163,7 @@ class FleetProblem(search.Problem):
         for action in sol:
             pic_drop, v_i, r_i, tp = action
         
-            # In case where request pickup has been done and dropoff hasn't,
+            # In cases where request pickup has been done and dropoff hasn't,
             # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
             if pic_drop == 'Pickup' and status_req[r_i] == False:
                 t_req, origin, drop_off, _  = self.req[r_i]
@@ -179,7 +176,7 @@ class FleetProblem(search.Problem):
                 # dr2 = td_i_estimated - td_iopt
                 # where td_iopt: the optimal dropoff time for this request
                 # td_i_estimated: the estimated dropoff time for this request, considering
-                # the current location of the vehicle in its previous action, and that it is going 
+                # the current location of the vehicle by its previous action, and that it is going 
                 # from that point to the destination of the request (optimistic case)
                 if veh_status[v_i] != []:
                     a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
@@ -187,7 +184,7 @@ class FleetProblem(search.Problem):
                     
                     if a_j == 'Pickup':
                         # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
-                        if origin_j < drop_off:
+                        if origin_j < drop_off: # t_opt[(i, j)] must have i <= j
                             td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
                         else:
                             td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
@@ -213,20 +210,20 @@ class FleetProblem(search.Problem):
 
         return cost 
     
-    
-    def result(self, state, action):
-        ''' Return the state that results from executing
+    ''' Return the state that results from executing
         the given action in the given state '''
+    def result(self, state, action):
+        # We use as state a string in order to use explored.add(node.state)
+        # However state can only be manipulated in list of tuples format
         state = str_to_list_of_tuples(state)
         state.append(action)
-                
+    
         # Sort state in order to use the priority queue without duplicates
         state = sorted(state, key=lambda x: (x[3], x[0][0], x[1], x[2]))
         return list_of_tuples_to_str(state)
         
-    
+    ''' Return the actions that can be executed the given state. '''
     def actions(self, state):
-        ''' Return the actions that can be executed the given state . '''
         R = []
         available_seats = self.vehicles.copy() # number of available seats in each vehicle
         req_status = [[0,-1] for __ in range(self.NR)]  # status of each request (0,1)
@@ -235,8 +232,8 @@ class FleetProblem(search.Problem):
         
         state = str_to_list_of_tuples(state)
         
-        # Get the number of current available seats in each vehicle
-        # and get the status of each request
+        # Get the number of currently available seats in each vehicle, the 
+        # status of each request and the index of the vehicle associated with each request
         for s in state:
             req_status[s[2]][0] +=1
             if s[0] == 'Pickup':
@@ -245,33 +242,34 @@ class FleetProblem(search.Problem):
             else:
                 available_seats[s[1]] += self.req[s[2]][3]
 
-        # R gets the feasible requests actions available to be executed
+        # R gets the feasible requests' actions available to be executed
         for index,request in enumerate(self.req):
             if(req_status[index][0] == 0):
                 R.append(('Pickup', index))
             elif(req_status[index][0] == 1):
                 R.append(('Dropoff', index))
+                
         actions = []
-
         for request in R:
             for indexV,_ in enumerate(self.vehicles):
-                # Vehicle is appropriate for this specific task, i.e.,
-                # in cases of pickup check if the vehicle has available seats and
-                # in cases of dropoff check if it's the same vehicle that is performing that request
+                # Check if vehicle is appropriate for this specific task:
+                # in pickups check if the vehicle has available seats
+                # in dropoffs check if this is the same vehicle that is performing that request
                 if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or \
                     (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]):
                     
-                    # Save the last action by vehicle
+                    # Save the last vehicle' action
                     action_j = []
                     for st_action in reversed(state):
                         if st_action[1] == indexV:
                             action_j.append(st_action)
                             break
                     
-                    # Vehicle never used before
+                    # Check if vehicle has ever been used
                     if action_j == []:
                         new_action_point = self.req[request[1]][1] # get origin from request, because always 'Pickup'
                         t = max(self.t_opt[(0, new_action_point)], self.req[request[1]][0]) 
+                        # t = max(time from point 0 to new action's point, t_req)
                     else: 
                         if action_j[0][0] == 'Pickup':
                             action_j_point = self.req[action_j[0][2]][1] # get origin from request
@@ -286,29 +284,34 @@ class FleetProblem(search.Problem):
                         if action_j_point > new_action_point :
                             action_j_point,new_action_point = new_action_point, action_j_point
                             
-                        # t = t_drop/pick_j + time from point j to new action's point 
+                        # t = max(t_drop/pick_j + time from point j to new action's point , t_req)
                         t = max(action_j[0][3] + self.t_opt[(action_j_point, new_action_point)], self.req[request[1]][0])
                             
                     actions.append((request[0], indexV, request[1], t))
-                    # action = (pickoff/dropoff, vehicle index, request index, time)
+                    # action = (pickup/dropoff, vehicle index, request index, time)
 
         return actions        
     
+    ''' Return True if the state is a goal. ''' 
     def goal_test(self, state):
-        ''' Return True if the state is a goal .''' 
         state = str_to_list_of_tuples(state)
-        
+        # Solution is complete if it has number of elements = 2 * number of requests,
+        # i.e, a pickup and a dropoff per request
         return len(state) == len(self.req) * 2
     
+    ''' Return the cost of a solution path that arrives at state2. '''
     def path_cost(self, c, state1, action, state2):
-        ''' Return the cost of a solution path that arrives at state 2 from
-    state1 via action , assuming cost c to get up to state1 . '''
         return self.cost2(list(eval(state2))) 
     
+    ''' Calls the uninformed search algorithm
+        chosen. Returns a solution using the specified format. '''
     def solve(self):
-        ''' Calls the uninformed search algorithm
-        chosen . Returns a solution using the specified format . '''
+        # We choose the uniform cost search algorithm which selects the node 
+        # with lower path cost by using a priority queue.
+        # Advantages: guarantees optimal solution and completeness 
+        # given that step costs are strictly positive.
+        # Time and space complexity: proportional to number of nodes with path cost
+        # less than of optimal solution.
 
         solution = search.uniform_cost_search(self)
-        solution = list(eval(solution.state))
-        return solution
+        return str_to_list_of_tuples(solution.state)
