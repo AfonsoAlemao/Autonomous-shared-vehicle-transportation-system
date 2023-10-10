@@ -112,7 +112,7 @@ class FleetProblem(search.Problem):
                 
                 # Delay (dr) = 
                 # = Dropoff time of an action (td) -
-                # - Time of the request of an action (treq) -
+                # - Time of the request of an action (t_req) -
                 # - Optimal transportation time between origin and drop_off (Tod)
                 dr = td - t_req - Tod
                 
