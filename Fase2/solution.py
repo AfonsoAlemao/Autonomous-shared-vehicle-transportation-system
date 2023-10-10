@@ -64,7 +64,7 @@ class FleetProblem(search.Problem):
                         # Tod: Transportation time from origin (counter) to dropoff (count_aux)
                         Tod = float(to)
                         
-                        # T(p, q) > 0 if p ̸= q (como está no enunciado)
+                        # T(p, q) > 0 if p ̸= q (as is in the project handout)
                         if Tod <= 0:
                             raise Exception("Invalid transportation time")
                 
@@ -75,7 +75,7 @@ class FleetProblem(search.Problem):
                 elif mode == 2: # Read requests
                     req_time = float(v[0])
                     
-                    # Valid requests have t (request time) ≥ 0 (como está no enunciado)
+                    # Valid requests have t (request time) ≥ 0 (as is in the project handout)
                     if req_time < 0:
                         raise Exception("Invalid request time")
 
@@ -86,7 +86,7 @@ class FleetProblem(search.Problem):
                     self.vehicles.append(int(v[0])) # capacity
                     counter += 1 
         
-        # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (como está no enunciado)
+        # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (as is in the project handout)
         for p in range(self.NP):
             self.t_opt[(p, p)] = 0
             
@@ -154,7 +154,7 @@ class FleetProblem(search.Problem):
                 
                 # Request Cost = Delay = 
                 # = Dropoff time of an action (td) -
-                # - Time of the request of an action (treq) -
+                # - Time of the request of an action (t_req) -
                 # - Optimal transportation time between origin and drop_off (Tod)                
                 cost += td - t_req - Tod
                 
@@ -170,7 +170,7 @@ class FleetProblem(search.Problem):
                 
                 # Delay (dr1) = 
                 # = Pickup time of an action (td) -
-                # - Time of the request of an action (treq)
+                # - Time of the request of an action (t_req)
                 dr1 = tp - t_req 
                 
                 # dr2 = td_i_estimated - td_iopt
@@ -218,15 +218,15 @@ class FleetProblem(search.Problem):
         state = str_to_list_of_tuples(state)
         state.append(action)
     
-        # Sort state in order to use the priority queue without duplicates
+        # Sort state in order to ensure the correct working of the priority queue (without duplicates)
         state = sorted(state, key=lambda x: (x[3], x[0][0], x[1], x[2]))
         return list_of_tuples_to_str(state)
         
-    ''' Return the actions that can be executed the given state. '''
+    ''' Return the actions that can be executed in the given state. '''
     def actions(self, state):
         R = []
         available_seats = self.vehicles.copy() # number of available seats in each vehicle
-        req_status = [[0,-1] for __ in range(self.NR)]  # status of each request (0,1)
+        req_status = [[0,-1] for __ in range(self.NR)]  # status of each request [0,1]
         # (0): status of requirements 0 (start), 1 (picked up), 2 (finished)
         # (1): index of the vehicle in charge of the request
         
@@ -258,7 +258,7 @@ class FleetProblem(search.Problem):
                 if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or \
                     (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]):
                     
-                    # Save the last vehicle' action
+                    # Save the vehicle's last action
                     action_j = []
                     for st_action in reversed(state):
                         if st_action[1] == indexV:
@@ -306,7 +306,7 @@ class FleetProblem(search.Problem):
     ''' Calls the uninformed search algorithm
         chosen. Returns a solution using the specified format. '''
     def solve(self):
-        # We choose the uniform cost search algorithm which selects the node 
+        # We chose the uniform cost search algorithm which selects the node 
         # with lower path cost by using a priority queue.
         # Advantages: guarantees optimal solution and completeness 
         # given that step costs are strictly positive.
