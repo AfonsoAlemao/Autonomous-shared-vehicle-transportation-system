@@ -35,16 +35,16 @@ File2.close()
 
 # C = 144
 
-# import time
+import time
 
 def main():
     problem = FleetProblem()
     with io.StringIO(P) as fh:
         problem.load(fh)
         
-    # start_time = time.time()
+    start_time = time.time()
     solution = problem.solve()
-    # print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- %s seconds ---" % (time.time() - start_time))
     
     # print(solution)
     print(problem.cost(solution))

@@ -425,11 +425,15 @@ class FleetProblem(search.Problem):
                                     tp = tp_j + self.t_opt[(origin, drop_off_j)]
                         else:
                             tp = self.t_opt[(0, origin)]
-                            
-                        dr1 = tp - t_req
+                        
+                        if tp > t_req:   
+                            dr1 = tp - t_req
+                        else:
+                            dr1 = 0
                         
                         if dr1 < dr1_min:
                             dr1_min = dr1
+                
                 cost += dr1_min
 
         return cost 
