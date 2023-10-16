@@ -35,11 +35,17 @@ File2.close()
 
 # C = 144
 
+# import time
+
 def main():
     problem = FleetProblem()
     with io.StringIO(P) as fh:
         problem.load(fh)
+        
+    # start_time = time.time()
     solution = problem.solve()
+    # print("--- %s seconds ---" % (time.time() - start_time))
+    
     # print(solution)
     print(problem.cost(solution))
 
@@ -48,4 +54,19 @@ if __name__=='__main__':
     main()
 
 # EOF
+
+# Timings
+
+# exi | t(inclui NEW) | t(NEW comentado)
+
+# ex0|0.00s|0.00s
+# ex1|0.00s|0.01s
+# ex2|0.16s|0.46s
+# ex3|2.36s|12.4s
+# ex4|0.01s|15.9s
+# ex5|16.2s|0.11s
+# ex6|0.00s|0.00s
+# ex7|0.02s|0.36s
+# ex8|0.09s|0.57s
+# ex9|0.07s|0.41s
  

@@ -169,7 +169,7 @@ class FleetProblem(search.Problem):
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
                 # Delay (dr1) = 
-                # = Pickup time of an action (td) -
+                # = Pickup time of an action (tp) -
                 # - Time of the request of an action (t_req)
                 dr1 = tp - t_req 
                 

@@ -1,5 +1,7 @@
 import search
 
+INFINITY = 9999999999
+
 ''' Format a string to a list of tuples '''
 def str_to_list_of_tuples(str):
     if str == '' or str == 'None':
@@ -160,53 +162,53 @@ class FleetProblem(search.Problem):
                 
                 status_req[r_i] = True
                 
-        for action in sol:
-            pic_drop, v_i, r_i, tp = action
+        # for action in sol:
+        #     pic_drop, v_i, r_i, tp = action
         
-            # In cases where request pickup has been done and dropoff hasn't,
-            # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
-            if pic_drop == 'Pickup' and status_req[r_i] == False:
-                t_req, origin, drop_off, _  = self.req[r_i]
+        #     # In cases where request pickup has been done and dropoff hasn't,
+        #     # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
+        #     if pic_drop == 'Pickup' and status_req[r_i] == False:
+        #         t_req, origin, drop_off, _  = self.req[r_i]
                 
-                # Delay (dr1) = 
-                # = Pickup time of an action (td) -
-                # - Time of the request of an action (t_req)
-                dr1 = tp - t_req 
+        #         # Delay (dr1) = 
+        #         # = Pickup time of an action (td) -
+        #         # - Time of the request of an action (t_req)
+        #         dr1 = tp - t_req 
                 
-                # dr2 = td_i_estimated - td_iopt
-                # where td_iopt: the optimal dropoff time for this request
-                # td_i_estimated: the estimated dropoff time for this request, considering
-                # the current location of the vehicle by its previous action, and that it is going 
-                # from that point to the destination of the request (optimistic case)
-                if veh_status[v_i] != []:
-                    a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
-                    origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
+        #         # dr2 = td_i_estimated - td_iopt
+        #         # where td_iopt: the optimal dropoff time for this request
+        #         # td_i_estimated: the estimated dropoff time for this request, considering
+        #         # the current location of the vehicle by its previous action, and that it is going 
+        #         # from that point to the destination of the request (optimistic case)
+        #         if veh_status[v_i] != []:
+        #             a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
+        #             origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
-                    if a_j == 'Pickup':
-                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
-                        if origin_j < drop_off: # t_opt[(i, j)] must have i <= j
-                            td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
-                        else:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
-                    else:
-                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
-                        if drop_off_j < drop_off:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off_j, drop_off)]
-                        else:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off, drop_off_j)]
+        #             if a_j == 'Pickup':
+        #                 # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
+        #                 if origin_j < drop_off: # t_opt[(i, j)] must have i <= j
+        #                     td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
+        #                 else:
+        #                     td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
+        #             else:
+        #                 # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
+        #                 if drop_off_j < drop_off:
+        #                     td_i_estimated = tp_j + self.t_opt[(drop_off_j, drop_off)]
+        #                 else:
+        #                     td_i_estimated = tp_j + self.t_opt[(drop_off, drop_off_j)]
                             
-                    # td_iopt = tpi + Tod(origin_i, destiny_i)
-                    if origin < drop_off:
-                        td_iopt = tp + self.t_opt[(origin, drop_off)]
-                    else:
-                        td_iopt = tp + self.t_opt[(drop_off, origin)]
+        #             # td_iopt = tpi + Tod(origin_i, destiny_i)
+        #             if origin < drop_off:
+        #                 td_iopt = tp + self.t_opt[(origin, drop_off)]
+        #             else:
+        #                 td_iopt = tp + self.t_opt[(drop_off, origin)]
 
-                    dr2 = td_i_estimated - td_iopt             
-                else:
-                    dr2 = 0
+        #             dr2 = td_i_estimated - td_iopt             
+        #         else:
+        #             dr2 = 0
                         
-                # Cost of sol = sum of the request's delay
-                cost += dr1 + dr2
+        #         # Cost of sol = sum of the request's delay
+        #         cost += dr1 + dr2
 
         return cost 
     
@@ -306,8 +308,132 @@ class FleetProblem(search.Problem):
     
     def h(self, state):
         ''' Return the heuristic value for the given state.'''
-        return self.path_cost(0, [], '', state2=state.state)
+        # given node n returns a cost estimate of the cheapest path from n to a goal node
+        sol = str_to_list_of_tuples(state.state)
+            
+        cost = 0
+        status_req = [0 for _ in self.req] 
+        # (0,1): Dropoff not done yet; (2): Dropoff already done; 
+        # (0): Pickup not done yet; (1,2): Pickup already done
+        veh_status = [[] for _ in self.vehicles] # Last action performed by the vehicle
 
+        # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
+        # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
+        # v_i: an integer corresponding to the vehicle index;
+        # r_i: an integer corresponding to the request index;
+        # t: a float corresponding to the time of the action
+        for action in sol:
+            pic_drop, v_i, r_i, td = action
+            
+            # For each vehicle, check its previous action
+            if veh_status[v_i] != []:
+                if td > veh_status[v_i][3]:
+                    veh_status[v_i] = action
+            else:
+                veh_status[v_i] = action
+            
+            # If a request has already been fulfilled, its cost is determined by the delay
+            if pic_drop == 'Dropoff' or pic_drop == 'Pickup':
+                status_req[r_i] += 1
+                
+        for action in sol:
+            pic_drop, v_i, r_i, tp = action
+        
+            # In cases where request pickup has been done and dropoff hasn't,
+            # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
+            if pic_drop == 'Pickup' and status_req[r_i] != 2:
+                t_req, origin, drop_off, _  = self.req[r_i]
+                
+                # Delay (dr1) = 
+                # = Pickup time of an action (tp) -
+                # - Time of the request of an action (t_req)
+                dr1 = tp - t_req 
+                
+                # dr2 = td_i_estimated - td_iopt
+                # where td_iopt: the optimal dropoff time for this request
+                # td_i_estimated: the estimated dropoff time for this request, considering
+                # the current location of the vehicle by its previous action, and that it is going 
+                # from that point to the destination of the request (optimistic case)
+                if veh_status[v_i] != []:
+                    a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
+                    origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
+                    
+                    if a_j == 'Pickup':
+                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
+                        if origin_j < drop_off: # t_opt[(i, j)] must have i <= j
+                            td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
+                        else:
+                            td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
+                    else:
+                        # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
+                        if drop_off_j < drop_off:
+                            td_i_estimated = tp_j + self.t_opt[(drop_off_j, drop_off)]
+                        else:
+                            td_i_estimated = tp_j + self.t_opt[(drop_off, drop_off_j)]
+                            
+                    # td_iopt = tpi + Tod(origin_i, destiny_i)
+                    if origin < drop_off:
+                        td_iopt = tp + self.t_opt[(origin, drop_off)]
+                    else:
+                        td_iopt = tp + self.t_opt[(drop_off, origin)]
+
+                    dr2 = td_i_estimated - td_iopt             
+                else:
+                    dr2 = 0
+                        
+                # Cost of sol = sum of the request's delay
+                cost += dr1 + dr2
+        
+        # TODO NEW (389 até 433)
+        
+        # We also need to compute the estimated cost for the not attended requests
+        for r_i, req in enumerate(self.req):
+            if status_req[r_i] == 0:
+                t_req, origin, drop_off, n_pass = req
+                
+                # Delay (dr1) = 
+                # = Pickup time of an action (tp) -
+                # - Time of the request of an action (t_req)
+                # t_req = req[0]
+            
+                # tp = tp_i_estimated = the estimated pickup time for this request, considering
+                # the current location of the vehicle by its previous action, and that it is going 
+                # from that point to the pickup of the request (optimistic case)
+
+                # try all vehicles and choose the one that guarantees optimality
+                dr1_min = INFINITY
+                
+                # We do not consider the number of current passengers, to consider the 'best case'
+
+                for v_i, capacity in enumerate(self.vehicles):
+                    if capacity >= n_pass:
+                        if veh_status[v_i] != []:
+                            a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
+                            origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
+                            
+                            if a_j == 'Pickup':
+                                # tp_i_estimated = tp_j + Tod(origin_j, origin_i)
+                                if origin_j < origin: # t_opt[(i, j)] must have i <= j
+                                    tp = tp_j + self.t_opt[(origin_j, origin)]
+                                else:
+                                    tp = tp_j + self.t_opt[(origin, origin_j)]
+                            else:
+                                # td_i_estimated = tp_j + Tod(origin_j, origin_i)
+                                if drop_off_j < origin:
+                                    tp = tp_j + self.t_opt[(drop_off_j, origin)]
+                                else:
+                                    tp = tp_j + self.t_opt[(origin, drop_off_j)]
+                        else:
+                            tp = self.t_opt[(0, origin)]
+                            
+                        dr1 = tp - t_req
+                        
+                        if dr1 < dr1_min:
+                            dr1_min = dr1
+                cost += dr1_min
+
+        return cost 
+        
     ''' Calls the informed search algorithm
         chosen. Returns a solution using the specified format. '''
     def solve(self):
