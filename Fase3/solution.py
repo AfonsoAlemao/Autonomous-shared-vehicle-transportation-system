@@ -132,12 +132,12 @@ class FleetProblem(search.Problem):
     by including delays of partially completed requests (only picked up). '''
     def cost2(self, sol):
         cost = 0
-        status_req = [False for _ in self.req] # (False): Dropoff not done yet; (True): Dropoff already done
+        # status_req = [False for _ in self.req] # (False): Dropoff not done yet; (True): Dropoff already done
         
-        veh_status = {} # Last action performed by the vehicle
-        valid_vehicle_index = [t[1] for t in self.vehicles]
-        for index in valid_vehicle_index:
-            veh_status[(index)] = []
+        # veh_status = {} # Last action performed by the vehicle
+        # valid_vehicle_index = [t[1] for t in self.vehicles]
+        # for index in valid_vehicle_index:
+        #     veh_status[(index)] = []
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -145,14 +145,14 @@ class FleetProblem(search.Problem):
         # r_i: an integer corresponding to the request index;
         # t: a float corresponding to the time of the action
         for action in sol:
-            pic_drop, v_i, r_i, td = action
+            pic_drop, _, r_i, td = action
             
             # For each vehicle, check its previous action
-            if veh_status[(v_i)] != []:
-                if td > veh_status[(v_i)][3]:
-                    veh_status[(v_i)] = action
-            else:
-                veh_status[(v_i)] = action
+            # if veh_status[(v_i)] != []:
+            #     if td > veh_status[(v_i)][3]:
+            #         veh_status[(v_i)] = action
+            # else:
+            #     veh_status[(v_i)] = action
             
             # If a request has already been fulfilled, its cost is determined by the delay
             if pic_drop == 'Dropoff':
@@ -167,7 +167,7 @@ class FleetProblem(search.Problem):
                 # - Optimal transportation time between origin and drop_off (Tod)                
                 cost += td - t_req - Tod
                 
-                status_req[r_i] = True
+                # status_req[r_i] = True
                 
         # for action in sol:
         #     pic_drop, v_i, r_i, tp = action
@@ -476,9 +476,6 @@ class FleetProblem(search.Problem):
                                     t_free += self.Tod(actual_point, req[2])
                                     if ii > 0:
                                         delay_aux += t_free - self.Tod(point_j, req[2])
-                                        
-                                        if delay_aux > 0:
-                                            print(delay_aux)
                                             
                                     free_seats_aux += req[3]
                                     

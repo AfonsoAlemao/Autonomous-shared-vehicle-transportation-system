@@ -6,7 +6,7 @@ from solution import *
 
 test = sys.argv
 
-File2  = open("../public3/ex6"+".dat", "r")
+File2  = open("../public3/"+test[1]+".dat", "r")
 
 P = File2.read()
 File2.close()
