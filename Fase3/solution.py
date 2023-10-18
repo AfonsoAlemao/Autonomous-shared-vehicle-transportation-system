@@ -115,9 +115,7 @@ class FleetProblem(search.Problem):
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
                 # Get Tod of the request
-                if origin > drop_off:
-                    origin, drop_off = drop_off, origin
-                Tod = self.t_opt[(origin, drop_off)]
+                Tod = self.Tod(origin, drop_off)
                 
                 # Delay (dr) = 
                 # = Dropoff time of an action (td) -
@@ -161,9 +159,7 @@ class FleetProblem(search.Problem):
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
                 # Get Tod of the request
-                if origin > drop_off:
-                    origin, drop_off = drop_off, origin
-                Tod = self.t_opt[(origin, drop_off)]
+                Tod = self.Tod(origin, drop_off)
                 
                 # Request Cost = Delay = 
                 # = Dropoff time of an action (td) -
@@ -303,7 +299,7 @@ class FleetProblem(search.Problem):
                             action_j_point,new_action_point = new_action_point, action_j_point
                             
                         # t = max(t_drop/pick_j + time from point j to new action's point , t_req)
-                        t = max(action_j[0][3] + self.t_opt[(action_j_point, new_action_point)], self.req[request[1]][0])
+                        t = max(action_j[0][3] + self.Tod(action_j_point, new_action_point), self.req[request[1]][0])
                             
                     actions.append((request[0], indexV, request[1], t))
                     # action = (pickup/dropoff, vehicle index, request index, time)
@@ -321,6 +317,11 @@ class FleetProblem(search.Problem):
     def path_cost(self, c, state1, action, state2):
         return self.cost2(str_to_list_of_tuples(state2)) 
     
+    def Tod(self, o, d):
+        if o < d:
+            return self.t_opt[(o, d)]
+        else:
+            return self.t_opt[(d, o)]
     
     def h(self, state):
         ''' Return the heuristic value for the given state.'''
@@ -383,22 +384,13 @@ class FleetProblem(search.Problem):
                     
                     if a_j == 'Pickup':
                         # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
-                        if origin_j < drop_off: # t_opt[(i, j)] must have i <= j
-                            td_i_estimated = tp_j + self.t_opt[(origin_j, drop_off)]
-                        else:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off, origin_j)]
+                        td_i_estimated = tp_j + self.Tod(origin_j, drop_off)
                     else:
                         # td_i_estimated = tp_j + Tod(origin_j, destiny_i)
-                        if drop_off_j < drop_off:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off_j, drop_off)]
-                        else:
-                            td_i_estimated = tp_j + self.t_opt[(drop_off, drop_off_j)]
+                        td_i_estimated = tp_j + self.Tod(drop_off_j, drop_off)
                             
                     # td_iopt = tpi + Tod(origin_i, destiny_i)
-                    if origin < drop_off:
-                        td_iopt = tp + self.t_opt[(origin, drop_off)]
-                    else:
-                        td_iopt = tp + self.t_opt[(drop_off, origin)]
+                    td_iopt = tp + self.Tod(drop_off, origin)
 
                     dr2 = td_i_estimated - td_iopt             
                 else:
@@ -440,16 +432,10 @@ class FleetProblem(search.Problem):
                                 
                                 if a_j == 'Pickup':
                                     # tp_i_estimated = tp_j + Tod(origin_j, origin_i)
-                                    if origin_j < origin: # t_opt[(i, j)] must have i <= j
-                                        tp = tp_j + self.t_opt[(origin_j, origin)]
-                                    else:
-                                        tp = tp_j + self.t_opt[(origin, origin_j)]
+                                    tp = tp_j + self.Tod(origin_j, origin)
                                 else:
                                     # td_i_estimated = tp_j + Tod(origin_j, origin_i)
-                                    if drop_off_j < origin:
-                                        tp = tp_j + self.t_opt[(drop_off_j, origin)]
-                                    else:
-                                        tp = tp_j + self.t_opt[(origin, drop_off_j)]
+                                    tp = tp_j + self.Tod(drop_off_j, origin)
                             else:
                                 tp = self.t_opt[(0, origin)]
                             
@@ -473,41 +459,43 @@ class FleetProblem(search.Problem):
                             # lista de pickups incompletos [p1(o1,d1,np1),p2(o2,d2,np2),p3(o3,d3,np3)] veh_pic_status[(v_i)]:
                             # list de possiveis dropoffs: 
                             permutations_list = list(permutations(veh_pic_status[(v_i)]))
-                            t_free_min = INFINITY
+                            
+                            dr1_free_min = INFINITY
+                            
                             for perm in permutations_list:
                                 actual_point = point_j
                                 t_free = 0
                                 free_seats_aux = free_seats
+                                delay_aux = 0
                                 # list de possiveis dropoffs: 
-                                for act in perm:
+                                for ii, act in enumerate(perm):
                                     req = self.req[act[2]]
-                                    if actual_point < req[2]:
-                                        t_free += self.t_opt[(actual_point, req[2])]
-                                    else:
-                                        t_free += self.t_opt[(req[2], actual_point)]
-                                        
+                                    t_free += self.Tod(actual_point, req[2])
+                                    if ii > 0:
+                                        delay_aux += t_free - self.Tod(point_j, req[2])
+                                        # if delay_aux > 0:
+                                        #     print(delay_aux)
                                     free_seats_aux += req[3]
+                                    
                                     if free_seats_aux >= n_pass:
-                                        if req[2] < origin:
-                                            t_free += self.t_opt[(req[2], origin)]
-                                        else: 
-                                            t_free += self.t_opt[(origin, req[2])]
+                                        t_free += self.Tod(req[2], origin)
                                         break
+                                    
                                     actual_point = req[2]
                                     
-                                    if t_free >= t_free_min:
+                                    if tp_j + t_free - t_req + delay_aux >= dr1_free_min:
                                         break
-                                    
-                                if t_free < t_free_min:
-                                    t_free_min = t_free
                                 
-                            tp = tp_j + t_free
-                            
-                            if tp > t_req:   
-                                dr1 = tp - t_req
-                            else:
-                                dr1 = 0
-                                best_case = True
+                                if tp > t_req:   
+                                    dr1 = tp_j + t_free - t_req + delay_aux
+                                else:
+                                    dr1 = 0
+                                    best_case = True
+                                
+                                if dr1 < dr1_free_min:
+                                    dr1_free_min = dr1                                
+                              
+                            dr1 = dr1_free_min
                         
                         if dr1 < dr1_min:
                             dr1_min = dr1
