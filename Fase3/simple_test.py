@@ -6,7 +6,7 @@ from solution import *
 
 test = sys.argv
 
-File2  = open("../Test2/"+test[1]+".dat", "r")
+File2  = open("../public3/"+test[1]+".dat", "r")
 
 P = File2.read()
 File2.close()
@@ -55,18 +55,4 @@ if __name__=='__main__':
 
 # EOF
 
-# Timings
-
-# exi | t(inclui NEW) | t(NEW comentado)
-
-# ex0|0.00s|0.00s
-# ex1|0.00s|0.01s
-# ex2|0.28s|0.46s
-# ex3|2.38s|12.4s
-# ex4|0.02s|15.9s
-# ex5|0.11s|0.11s
-# ex6|0.00s|0.00s
-# ex7|0.02s|0.36s
-# ex8|0.09s|0.57s
-# ex9|0.07s|0.41s
- 
+# 5,6,8

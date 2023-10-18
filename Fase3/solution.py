@@ -405,6 +405,7 @@ class FleetProblem(search.Problem):
                 
                 # We do not consider the number of current passengers, to consider the 'best case'
 
+                best_case = False
                 for v_i, capacity in enumerate(self.vehicles):
                     if capacity >= n_pass:
                         if veh_status[v_i] != []:
@@ -430,9 +431,13 @@ class FleetProblem(search.Problem):
                             dr1 = tp - t_req
                         else:
                             dr1 = 0
+                            best_case = True
                         
                         if dr1 < dr1_min:
                             dr1_min = dr1
+                
+                    if best_case == True:
+                        break
                 
                 cost += dr1_min
 
