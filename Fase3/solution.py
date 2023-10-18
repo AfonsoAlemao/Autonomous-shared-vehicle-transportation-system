@@ -423,7 +423,7 @@ class FleetProblem(search.Problem):
                     if capacity >= n_pass:
                         free_seats = capacity
                         for a in veh_pic_status[(v_i)]:
-                            free_seats -= a[3]
+                            free_seats -= self.req[a[2]][3]
                             
                         if free_seats >= n_pass:
                             if veh_status[(v_i)] != []:
@@ -462,6 +462,9 @@ class FleetProblem(search.Problem):
                             
                             dr1_free_min = INFINITY
                             
+                            # if len(permutations_list) > 1 and n_pass > 2:
+                            #     print('a')
+                            
                             for perm in permutations_list:
                                 actual_point = point_j
                                 t_free = 0
@@ -473,8 +476,10 @@ class FleetProblem(search.Problem):
                                     t_free += self.Tod(actual_point, req[2])
                                     if ii > 0:
                                         delay_aux += t_free - self.Tod(point_j, req[2])
-                                        # if delay_aux > 0:
-                                        #     print(delay_aux)
+                                        
+                                        if delay_aux > 0:
+                                            print(delay_aux)
+                                            
                                     free_seats_aux += req[3]
                                     
                                     if free_seats_aux >= n_pass:
@@ -483,9 +488,10 @@ class FleetProblem(search.Problem):
                                     
                                     actual_point = req[2]
                                     
-                                    if tp_j + t_free - t_req + delay_aux >= dr1_free_min:
+                                    if tp_j + t_free - t_req + delay_aux >= dr1_min:
                                         break
                                 
+                                tp = tp_j + t_free
                                 if tp > t_req:   
                                     dr1 = tp_j + t_free - t_req + delay_aux
                                 else:
