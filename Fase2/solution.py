@@ -112,7 +112,7 @@ class FleetProblem(search.Problem):
                 
                 # Delay (dr) = 
                 # = Dropoff time of an action (td) -
-                # - Time of the request of an action (treq) -
+                # - Time of the request of an action (t_req) -
                 # - Optimal transportation time between origin and drop_off (Tod)
                 dr = td - t_req - Tod
                 
@@ -169,7 +169,7 @@ class FleetProblem(search.Problem):
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
                 # Delay (dr1) = 
-                # = Pickup time of an action (td) -
+                # = Pickup time of an action (tp) -
                 # - Time of the request of an action (t_req)
                 dr1 = tp - t_req 
                 
