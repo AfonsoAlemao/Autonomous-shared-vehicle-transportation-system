@@ -86,12 +86,17 @@ class FleetProblem(search.Problem):
                     counter += 1
                     
                 elif mode == 3: # Read vehicles
-                    self.vehicles.append(int(v[0])) # capacity
+                    self.vehicles.append((int(v[0]), counter)) # capacity
                     counter += 1 
         
         # Transportation time is 0 if origin == dropoff: T(p, p) = 0  (as is in the project handout)
         for p in range(self.NP):
             self.t_opt[(p, p)] = 0
+        
+        self.vehicles = sorted(self.vehicles, key=lambda x: (x[0]), reverse=True)
+        if self.NR < self.NV:
+            self.vehicles = self.vehicles[0 : self.NR]
+            self.NV = self.NR
             
     ''' Compute cost of solution sol. '''       
     def cost(self, sol):
@@ -129,7 +134,11 @@ class FleetProblem(search.Problem):
     def cost2(self, sol):
         cost = 0
         status_req = [False for _ in self.req] # (False): Dropoff not done yet; (True): Dropoff already done
-        veh_status = [[] for _ in self.vehicles] # Last action performed by the vehicle
+        
+        veh_status = {} # Last action performed by the vehicle
+        valid_vehicle_index = [t[1] for t in self.vehicles]
+        for index in valid_vehicle_index:
+            veh_status[(index)] = []
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -140,11 +149,11 @@ class FleetProblem(search.Problem):
             pic_drop, v_i, r_i, td = action
             
             # For each vehicle, check its previous action
-            if veh_status[v_i] != []:
-                if td > veh_status[v_i][3]:
-                    veh_status[v_i] = action
+            if veh_status[(v_i)] != []:
+                if td > veh_status[(v_i)][3]:
+                    veh_status[(v_i)] = action
             else:
-                veh_status[v_i] = action
+                veh_status[(v_i)] = action
             
             # If a request has already been fulfilled, its cost is determined by the delay
             if pic_drop == 'Dropoff':
@@ -228,7 +237,12 @@ class FleetProblem(search.Problem):
     ''' Return the actions that can be executed in the given state. '''
     def actions(self, state):
         R = []
-        available_seats = self.vehicles.copy() # number of available seats in each vehicle
+        
+        available_seats = {}
+        
+        for seats, v_i in self.vehicles:
+            available_seats[(v_i)] = seats
+
         req_status = [[0,-1] for __ in range(self.NR)]  # status of each request [0,1]
         # (0): status of requirements 0 (start), 1 (picked up), 2 (finished)
         # (1): index of the vehicle in charge of the request
@@ -241,9 +255,9 @@ class FleetProblem(search.Problem):
             req_status[s[2]][0] +=1
             if s[0] == 'Pickup':
                 req_status[s[2]][1] = s[1]
-                available_seats[s[1]] -= self.req[s[2]][3]
+                available_seats[(s[1])] -= self.req[s[2]][3]
             else:
-                available_seats[s[1]] += self.req[s[2]][3]
+                available_seats[(s[1])] += self.req[s[2]][3]
 
         # R gets the feasible requests' actions available to be executed
         for index,request in enumerate(self.req):
@@ -254,12 +268,12 @@ class FleetProblem(search.Problem):
                 
         actions = []
         for request in R:
-            for indexV,_ in enumerate(self.vehicles):
+            for _, indexV in self.vehicles:
                 # Check if vehicle is appropriate for this specific task:
                 # in pickups check if the vehicle has available seats
                 # in dropoffs check if this is the same vehicle that is performing that request
                 if (request[0] == 'Dropoff' and indexV == req_status[request[1]][1]) or \
-                    (request[0] == 'Pickup' and available_seats[indexV] >= self.req[request[1]][3]):
+                    (request[0] == 'Pickup' and available_seats[(indexV)] >= self.req[request[1]][3]):
                     
                     # Save the vehicle's last action
                     action_j = []
@@ -316,7 +330,11 @@ class FleetProblem(search.Problem):
         status_req = [0 for _ in self.req] 
         # (0,1): Dropoff not done yet; (2): Dropoff already done; 
         # (0): Pickup not done yet; (1,2): Pickup already done
-        veh_status = [[] for _ in self.vehicles] # Last action performed by the vehicle
+        
+        veh_status = {} # Last action performed by the vehicle
+        valid_vehicle_index = [t[1] for t in self.vehicles]
+        for index in valid_vehicle_index:
+            veh_status[(index)] = []
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -327,11 +345,11 @@ class FleetProblem(search.Problem):
             pic_drop, v_i, r_i, td = action
             
             # For each vehicle, check its previous action
-            if veh_status[v_i] != []:
-                if td > veh_status[v_i][3]:
-                    veh_status[v_i] = action
+            if veh_status[(v_i)] != []:
+                if td > veh_status[(v_i)][3]:
+                    veh_status[(v_i)] = action
             else:
-                veh_status[v_i] = action
+                veh_status[(v_i)] = action
             
             # If a request has already been fulfilled, its cost is determined by the delay
             if pic_drop == 'Dropoff' or pic_drop == 'Pickup':
@@ -355,8 +373,8 @@ class FleetProblem(search.Problem):
                 # td_i_estimated: the estimated dropoff time for this request, considering
                 # the current location of the vehicle by its previous action, and that it is going 
                 # from that point to the destination of the request (optimistic case)
-                if veh_status[v_i] != []:
-                    a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
+                if veh_status[(v_i)] != []:
+                    a_j, _, r_j, tp_j = veh_status[(v_i)] # get the last action executed by the vehicle
                     origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                     
                     if a_j == 'Pickup':
@@ -384,9 +402,7 @@ class FleetProblem(search.Problem):
                         
                 # Cost of sol = sum of the request's delay
                 cost += dr1 + dr2
-        
-        # TODO NEW (389 até 433)
-        
+                
         # We also need to compute the estimated cost for the not attended requests
         for r_i, req in enumerate(self.req):
             if status_req[r_i] == 0:
@@ -407,10 +423,10 @@ class FleetProblem(search.Problem):
                 # We do not consider the number of current passengers, to consider the 'best case'
 
                 best_case = False
-                for v_i, capacity in enumerate(self.vehicles):
+                for capacity, v_i in self.vehicles:
                     if capacity >= n_pass:
-                        if veh_status[v_i] != []:
-                            a_j, _, r_j, tp_j = veh_status[v_i] # get the last action executed by the vehicle
+                        if veh_status[(v_i)] != []:
+                            a_j, _, r_j, tp_j = veh_status[(v_i)] # get the last action executed by the vehicle
                             origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
                             
                             if a_j == 'Pickup':
