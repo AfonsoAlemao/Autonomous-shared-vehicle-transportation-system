@@ -313,5 +313,5 @@ class FleetProblem(search.Problem):
         # Time and space complexity: proportional to number of nodes with path cost
         # less than of optimal solution.
 
-        solution = search.uniform_cost_search(self)
+        solution = search.uniform_cost_search(self,display=True)
         return str_to_list_of_tuples(solution.state)
