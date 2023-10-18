@@ -1,6 +1,7 @@
 import search
+import numpy 
 
-INFINITY = 9999999999
+INFINITY = numpy.inf
 
 ''' Format a string to a list of tuples '''
 def str_to_list_of_tuples(str):
