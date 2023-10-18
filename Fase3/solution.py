@@ -29,6 +29,7 @@ class FleetProblem(search.Problem):
         self.NR = 0 # Number of requests
         self.NV = 0 # Number of vehicles
         self.initial = ''  # Initial state is an empty string (empty list of tuples when we convert it)
+        self.t_opt_min = INFINITY
     
     ''' Loads a problem from the opened file object fh. '''  
     def load(self, fh):  
@@ -74,6 +75,10 @@ class FleetProblem(search.Problem):
                 
                         self.t_opt[(counter, count_aux)] = Tod # (origin, dropoff) = (counter, count_aux)
                         count_aux += 1
+                        
+                        if Tod < self.t_opt_min:
+                            self.t_opt_min = Tod
+                            
                     counter += 1
                     
                 elif mode == 2: # Read requests
@@ -98,7 +103,7 @@ class FleetProblem(search.Problem):
         if self.NR < self.NV:
             self.vehicles = self.vehicles[0 : self.NR]
             self.NV = self.NR
-            
+                    
     ''' Compute cost of solution sol. '''       
     def cost(self, sol):
         cost = 0  
@@ -416,8 +421,6 @@ class FleetProblem(search.Problem):
                 # try all vehicles and choose the one that guarantees optimality
                 dr1_min = INFINITY
                 
-                # We do not consider the number of current passengers, to consider the 'best case'
-
                 best_case = False
                 for capacity, v_i in self.vehicles:
                     if capacity >= n_pass:
@@ -454,16 +457,12 @@ class FleetProblem(search.Problem):
                                 
                             # tp = tp_j + t_free 
                             
-                            # tempo que ele demora a fazer dropoffs até ficar com espaço + t(ultimo dropoff, origin) = t_free                            
+                            # time it takes to execute dropoffs until it gets enough available seats + Tod(last dropoff, origin) = t_free
                             
-                            # lista de pickups incompletos [p1(o1,d1,np1),p2(o2,d2,np2),p3(o3,d3,np3)] veh_pic_status[(v_i)]:
-                            # list de possiveis dropoffs: 
+                            # list of possible dropoffs: 
                             permutations_list = list(permutations(veh_pic_status[(v_i)]))
                             
                             dr1_free_min = INFINITY
-                            
-                            # if len(permutations_list) > 1 and n_pass > 2:
-                            #     print('a')
                             
                             for perm in permutations_list:
                                 actual_point = point_j
@@ -503,12 +502,14 @@ class FleetProblem(search.Problem):
                         if dr1 < dr1_min:
                             dr1_min = dr1
                         
-                
                     if best_case == True:
                         break
                 
                 cost += dr1_min
 
+        # Consider the size of the current state solution. 
+        # Bigger size -> closer to the final solution -> less cost
+        cost += (2 * len(self.req) - len(sol)) * self.t_opt_min / 1000
         return cost 
         
     ''' Calls the informed search algorithm
