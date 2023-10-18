@@ -1,5 +1,6 @@
 import search
 import numpy 
+from itertools import permutations
 
 INFINITY = numpy.inf
 
@@ -332,9 +333,11 @@ class FleetProblem(search.Problem):
         # (0): Pickup not done yet; (1,2): Pickup already done
         
         veh_status = {} # Last action performed by the vehicle
+        veh_pic_status = {} # For each vehicle, save the request in course (pickup done, dropoff not done)
         valid_vehicle_index = [t[1] for t in self.vehicles]
         for index in valid_vehicle_index:
             veh_status[(index)] = []
+            veh_pic_status[(index)] = []
 
         # structure of solution element, i.e, an action: (pic_drop, v_i, r_i, t)
         # pic_drop: a string, either 'Pickup' or 'Dropoff', with self-evident meaning;
@@ -361,6 +364,7 @@ class FleetProblem(search.Problem):
             # In cases where request pickup has been done and dropoff hasn't,
             # we need to compute a estimated delay = dr1 + dr2 <= real (future) delay
             if pic_drop == 'Pickup' and status_req[r_i] != 2:
+                veh_pic_status[(v_i)].append(action)
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
                 # Delay (dr1) = 
@@ -425,33 +429,89 @@ class FleetProblem(search.Problem):
                 best_case = False
                 for capacity, v_i in self.vehicles:
                     if capacity >= n_pass:
-                        if veh_status[(v_i)] != []:
+                        free_seats = capacity
+                        for a in veh_pic_status[(v_i)]:
+                            free_seats -= a[3]
+                            
+                        if free_seats >= n_pass:
+                            if veh_status[(v_i)] != []:
+                                a_j, _, r_j, tp_j = veh_status[(v_i)] # get the last action executed by the vehicle
+                                origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
+                                
+                                if a_j == 'Pickup':
+                                    # tp_i_estimated = tp_j + Tod(origin_j, origin_i)
+                                    if origin_j < origin: # t_opt[(i, j)] must have i <= j
+                                        tp = tp_j + self.t_opt[(origin_j, origin)]
+                                    else:
+                                        tp = tp_j + self.t_opt[(origin, origin_j)]
+                                else:
+                                    # td_i_estimated = tp_j + Tod(origin_j, origin_i)
+                                    if drop_off_j < origin:
+                                        tp = tp_j + self.t_opt[(drop_off_j, origin)]
+                                    else:
+                                        tp = tp_j + self.t_opt[(origin, drop_off_j)]
+                            else:
+                                tp = self.t_opt[(0, origin)]
+                            
+                            if tp > t_req:   
+                                dr1 = tp - t_req
+                            else:
+                                dr1 = 0
+                                best_case = True
+                        else:
                             a_j, _, r_j, tp_j = veh_status[(v_i)] # get the last action executed by the vehicle
                             origin_j, drop_off_j = self.req[r_j][1], self.req[r_j][2]
-                            
                             if a_j == 'Pickup':
-                                # tp_i_estimated = tp_j + Tod(origin_j, origin_i)
-                                if origin_j < origin: # t_opt[(i, j)] must have i <= j
-                                    tp = tp_j + self.t_opt[(origin_j, origin)]
-                                else:
-                                    tp = tp_j + self.t_opt[(origin, origin_j)]
+                                point_j = origin_j
                             else:
-                                # td_i_estimated = tp_j + Tod(origin_j, origin_i)
-                                if drop_off_j < origin:
-                                    tp = tp_j + self.t_opt[(drop_off_j, origin)]
-                                else:
-                                    tp = tp_j + self.t_opt[(origin, drop_off_j)]
-                        else:
-                            tp = self.t_opt[(0, origin)]
-                        
-                        if tp > t_req:   
-                            dr1 = tp - t_req
-                        else:
-                            dr1 = 0
-                            best_case = True
+                                point_j = drop_off_j
+                                
+                            # tp = tp_j + t_free 
+                            
+                            # tempo que ele demora a fazer dropoffs até ficar com espaço + t(ultimo dropoff, origin) = t_free                            
+                            
+                            # lista de pickups incompletos [p1(o1,d1,np1),p2(o2,d2,np2),p3(o3,d3,np3)] veh_pic_status[(v_i)]:
+                            # list de possiveis dropoffs: 
+                            permutations_list = list(permutations(veh_pic_status[(v_i)]))
+                            t_free_min = INFINITY
+                            for perm in permutations_list:
+                                actual_point = point_j
+                                t_free = 0
+                                free_seats_aux = free_seats
+                                # list de possiveis dropoffs: 
+                                for act in perm:
+                                    req = self.req[act[2]]
+                                    if actual_point < req[2]:
+                                        t_free += self.t_opt[(actual_point, req[2])]
+                                    else:
+                                        t_free += self.t_opt[(req[2], actual_point)]
+                                        
+                                    free_seats_aux += req[3]
+                                    if free_seats_aux >= n_pass:
+                                        if req[2] < origin:
+                                            t_free += self.t_opt[(req[2], origin)]
+                                        else: 
+                                            t_free += self.t_opt[(origin, req[2])]
+                                        break
+                                    actual_point = req[2]
+                                    
+                                    if t_free >= t_free_min:
+                                        break
+                                    
+                                if t_free < t_free_min:
+                                    t_free_min = t_free
+                                
+                            tp = tp_j + t_free
+                            
+                            if tp > t_req:   
+                                dr1 = tp - t_req
+                            else:
+                                dr1 = 0
+                                best_case = True
                         
                         if dr1 < dr1_min:
                             dr1_min = dr1
+                        
                 
                     if best_case == True:
                         break
@@ -472,5 +532,5 @@ class FleetProblem(search.Problem):
 
         # Assignment 2: Uninformed search
         # solution = search.uniform_cost_search(self)
-        solution = search.astar_search(self, h=self.h, display=False)
+        solution = search.astar_search(self, h=self.h, display=True)
         return str_to_list_of_tuples(solution.state)
