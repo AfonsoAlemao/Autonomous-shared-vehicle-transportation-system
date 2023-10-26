@@ -100,7 +100,7 @@ class FleetProblem(search.Problem):
             self.t_opt[(p, p)] = 0
         
         # Initialize sorting of the vehicles list based on their capacity in descending order.
-        # This ensures that higher-capacity vehicles are prioritized first for usage.
+        # This ensures that higher-capacity vehicles are prioritized for usage.
         self.vehicles = sorted(self.vehicles, key=lambda x: (x[0]), reverse=True)
         if self.NR < self.NV:
             self.vehicles = self.vehicles[0 : self.NR]
@@ -109,7 +109,7 @@ class FleetProblem(search.Problem):
         # If the number of requests is less than the available vehicles, not all vehicles will be utilized.
         # In such cases, we trim the list of vehicles to match the number of requests,
         # ensuring that only the vehicles with the highest capacities are selected.
-        # This prevents the allocation of unused vehicles and the need to extend the search space.
+        # This prevents the allocation of unused vehicles and reduces the search space.
                     
     ''' Compute cost of solution sol. '''       
     def cost(self, sol):
@@ -241,9 +241,6 @@ class FleetProblem(search.Problem):
                         else:
                             new_action_point = self.req[request[1]][2] # Get destiny from request (location where the vehicle will be after the new action)
                             
-                        # if action_j_point > new_action_point :
-                        #     action_j_point,new_action_point = new_action_point, action_j_point
-                            
                         # t = max(t_drop/pick_j + time from point j to new action's point , t_req)
                         t = max(action_j[0][3] + self.Tod(action_j_point, new_action_point), self.req[request[1]][0])
                             
@@ -279,7 +276,7 @@ class FleetProblem(search.Problem):
         cost = 0
         status_req = [0 for _ in self.req] 
         # status_req 
-        # (0): Pickup not done yet; (1): Pickup already; done (2): Dropoff already done; 
+        # (0): Pickup not done yet; (1): Pickup already done (2): Dropoff already done; 
         
         veh_status = {} # Last action performed by the vehicle
         veh_pic_status = {} # For each vehicle, save the request in course (pickup done, dropoff not done)
