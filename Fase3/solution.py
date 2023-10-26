@@ -276,7 +276,7 @@ class FleetProblem(search.Problem):
         cost = 0
         status_req = [0 for _ in self.req] 
         # status_req 
-        # (0): Pickup not done yet; (1): Pickup already done (2): Dropoff already done; 
+        # (0): Pickup not done yet; (1): Pickup already done; (2): Dropoff already done; 
         
         veh_status = {} # Last action performed by the vehicle
         veh_pic_status = {} # For each vehicle, save the request in course (pickup done, dropoff not done)
