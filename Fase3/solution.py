@@ -434,7 +434,7 @@ class FleetProblem(search.Problem):
                 cost += dr1_min
 
         # Consider the size of the current state solution. 
-        # Larger size -> close to the final solution -> less cost
+        # Higher size -> close to the final solution -> less cost
         cost += (2 * len(self.req) - len(sol)) * self.t_opt_min / 1000
         return cost 
         
