@@ -246,7 +246,7 @@ class FleetProblem(search.Problem):
         # Given node n returns a cost estimate of the cheapest path from n to a goal node
         
         # Convert state from string to list of tuples
-        sol = str_to_list_of_tuples(state.state)
+        current_state = str_to_list_of_tuples(state.state)
             
         cost = 0
         status_req = [0 for _ in self.req] 
@@ -263,7 +263,7 @@ class FleetProblem(search.Problem):
         # We consider as heuristic the sum of [1] and [2]:
         
         # Setup
-        for action in sol:
+        for action in current_state:
             pic_drop, v_i, r_i, td = action
             
             # For each vehicle, check its previous action
@@ -286,7 +286,7 @@ class FleetProblem(search.Problem):
         # time dropoff optimal = time pickup + direct travel time
         # time dropoff estimated (optimistic) = 
         # = time pickup + travel time between vehicle's current position to dropoff point
-        for action in sol:
+        for action in current_state:
             pic_drop, v_i, r_i, tp = action
         
             # In cases where request pickup has been done and dropoff hasn't,
@@ -323,7 +323,7 @@ class FleetProblem(search.Problem):
                 else:
                     dr2 = 0
                         
-                # Cost of sol = sum of the request's delay
+                # Cost of current_state = sum of the request's delay
                 cost += dr1 + dr2
                 
         # [2]
@@ -435,7 +435,7 @@ class FleetProblem(search.Problem):
 
         # Consider the size of the current state solution. 
         # Higher size -> close to the final solution -> less cost
-        cost += (2 * len(self.req) - len(sol)) * self.t_opt_min / 1000
+        cost += (2 * len(self.req) - len(current_state)) * self.t_opt_min / 1000
         return cost 
         
     ''' Calls the informed search algorithm
