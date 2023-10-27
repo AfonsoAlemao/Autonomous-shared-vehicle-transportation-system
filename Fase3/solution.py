@@ -111,7 +111,7 @@ class FleetProblem(search.Problem):
         # ensuring that only the vehicles with the highest capacities are selected.
         # This prevents the allocation of unused vehicles and reduces the search space.
                     
-    ''' Compute cost of solution sol. '''       
+    ''' Compute cost of solution sol.  '''       
     def cost(self, sol):
         cost = 0  
 
@@ -120,37 +120,12 @@ class FleetProblem(search.Problem):
         # v_i: an integer corresponding to the vehicle index;
         # r_i: an integer corresponding to the request index;
         # t: a float corresponding to the time of the action
-        for action in sol:
-            pic_drop, _, r_i, td = action
-            
-            if pic_drop == 'Dropoff':
-                t_req, origin, drop_off, _  = self.req[r_i]
-                
-                # Get Tod of the request
-                Tod = self.Tod(origin, drop_off)
-                
-                # Delay (dr) = 
-                # = Dropoff time of an action (td) -
-                # - Time of the request of an action (t_req) -
-                # - Optimal transportation time between origin and drop_off (Tod)
-                dr = td - t_req - Tod
-                
-                # Cost of sol = sum of the request's delay
-                cost += dr
-                   
-        return cost 
-    
-    ''' Compute cost of solution sol. It also considers incomplete solutions 
-    by including delays of partially completed requests (only picked up). '''
-    def cost2(self, sol):
-        cost = 0
         
         # We only consider the cost of already fulfilled requests: 
         # requests in which both pickup and dropoff have already been performed
         for action in sol:
             pic_drop, _, r_i, td = action
             
-            # If a request has already been fulfilled, its cost is determined by the delay
             if pic_drop == 'Dropoff':
                 t_req, origin, drop_off, _  = self.req[r_i]
                 
@@ -162,7 +137,7 @@ class FleetProblem(search.Problem):
                 # - Time of the request of an action (t_req) -
                 # - Optimal transportation time between origin and drop_off (Tod)                
                 cost += td - t_req - Tod
-                
+                   
         return cost 
     
     ''' Return the state that results from executing
@@ -258,7 +233,7 @@ class FleetProblem(search.Problem):
     
     ''' Return the cost of a solution path that arrives at state2. '''
     def path_cost(self, c, state1, action, state2):
-        return self.cost2(str_to_list_of_tuples(state2)) 
+        return self.cost(str_to_list_of_tuples(state2)) 
     
     def Tod(self, o, d):
         if o < d:
