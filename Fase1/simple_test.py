@@ -6,6 +6,7 @@ from solution import *
 
 test = sys.argv
 
+
 File1 = open("../Test/"+test[1]+".plan", "r")
 File2  = open("../Test/"+test[1]+".dat", "r")
 
